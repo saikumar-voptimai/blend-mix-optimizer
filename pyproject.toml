@@ -1,0 +1,14 @@
+[project]
+name = "blend-mix-optimizer-2"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.4.2",
+    "openpyxl>=3.1.5",
+    "pandas>=2.3.3",
+    "plotly>=6.6.0",
+    "scipy>=1.17.1",
+    "streamlit>=1.55.0",
+]
