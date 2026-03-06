@@ -11,7 +11,7 @@ from pathlib import Path
 CHEMISTRY_FILE = Path(__file__).parent.parent / "assets" / "BF02_Ores_Chemical_Composition.xlsx"
 
 # Chemical columns used in calculations
-CHEMISTRY_COLS = ["%Fe(T)", "%SiO2", "%Al2O3", "%CaO", "%MgO", "%TiO2", "%P", "%MnO", "%LOI"]
+CHEMISTRY_COLS = ["%Fe(T)", "%FeO", "%SiO2", "%Al2O3", "%CaO", "%MgO", "%TiO2", "%P", "%MnO", "%LOI"]
 
 # Slag components
 SLAG_COMPONENTS = ["%SiO2", "%Al2O3", "%CaO", "%MgO"]

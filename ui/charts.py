@@ -62,10 +62,7 @@ def render_pareto_scatter(grid_df: pd.DataFrame, optimal: BlendResult):
             size=8,
             opacity=0.7,
             colorbar=dict(
-                title=dict(
-                    text="Slag%",
-                    font=dict(color=TEXT_COLOR),
-                ),
+                title=dict(text="Slag%", font=dict(color=TEXT_COLOR)),
                 tickfont=dict(color=TEXT_COLOR),
             ),
             line=dict(width=0.5, color=GRID_COLOR),
@@ -82,7 +79,7 @@ def render_pareto_scatter(grid_df: pd.DataFrame, optimal: BlendResult):
     # Optimal blend star
     fig.add_trace(go.Scatter(
         x=[optimal.cost_per_mt],
-        y=[optimal.fe_pct],
+        y=[optimal.effective_fe_pct],
         mode="markers+text",
         marker=dict(
             symbol="star",
@@ -95,7 +92,7 @@ def render_pareto_scatter(grid_df: pd.DataFrame, optimal: BlendResult):
         textfont=dict(color=ACCENT, size=11),
         hovertemplate=(
             f"<b>OPTIMAL BLEND</b><br>"
-            f"Fe: {optimal.fe_pct:.2f}%<br>"
+            f"Fe: {optimal.effective_fe_pct:.2f}%<br>"
             f"Slag: {optimal.slag_pct:.2f}%<br>"
             f"Cost: ₹{optimal.cost_per_mt:,.0f}<extra></extra>"
         ),
@@ -109,10 +106,9 @@ def render_pareto_scatter(grid_df: pd.DataFrame, optimal: BlendResult):
         legend=dict(bgcolor=BG_COLOR, bordercolor=GRID_COLOR),
         height=450,
     )
-
     fig.update_layout(**layout)
+    st.plotly_chart(fig, use_container_width=True)
 
-    st.plotly_chart(fig, width='stretch')
 
 def render_composition_bar(grid_df: pd.DataFrame, selected_ores: list[str], top_n: int = 10):
     """
@@ -157,7 +153,7 @@ def render_composition_bar(grid_df: pd.DataFrame, selected_ores: list[str], top_
         height=max(350, top_n * 35),
     )
     fig.update_layout(**layout)
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def render_radar_chart(grid_df: pd.DataFrame, selected_ranks: list[int], optimal: BlendResult):
@@ -183,7 +179,7 @@ def render_radar_chart(grid_df: pd.DataFrame, selected_ranks: list[int], optimal
 
     # Add optimal blend
     opt_row = {
-        "Fe%": optimal.fe_pct,
+        "Fe%": optimal.effective_fe_pct,
         "SiO2%": optimal.sio2_pct,
         "Al2O3%": optimal.al2o3_pct,
         "TiO2%": optimal.tio2_pct,
@@ -249,7 +245,7 @@ def render_radar_chart(grid_df: pd.DataFrame, selected_ranks: list[int], optimal
         height=480,
         margin=dict(l=60, r=60, t=60, b=40),
     )
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def render_fe_contribution_waterfall(optimal: BlendResult, chemistry_df):
@@ -257,11 +253,14 @@ def render_fe_contribution_waterfall(optimal: BlendResult, chemistry_df):
     Horizontal bar showing each ore's contribution to final Fe% of blend.
     Contribution_i = (qty_i / total_qty) × Fe_i
     """
-    ores   = list(optimal.quantities.keys())
+    from engine.blend_calculator import FE_FROM_FEO_FACTOR
+    ores     = list(optimal.quantities.keys())
     contribs = []
     for ore in ores:
-        w    = optimal.quantities[ore] / optimal.total_qty
-        fe_i = float(chemistry_df.loc[ore, "%Fe(T)"])
+        w     = optimal.quantities[ore] / optimal.total_qty
+        fe_t  = float(chemistry_df.loc[ore, "%Fe(T)"])
+        feo   = float(chemistry_df.loc[ore, "%FeO"]) if "%FeO" in chemistry_df.columns else 0.0
+        fe_i  = fe_t + feo * FE_FROM_FEO_FACTOR   # effective Fe per ore
         contribs.append(w * fe_i)
 
     fig = go.Figure(go.Bar(
@@ -286,4 +285,4 @@ def render_fe_contribution_waterfall(optimal: BlendResult, chemistry_df):
         showlegend=False,
     )
     fig.update_layout(**layout)
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(fig, use_container_width=True)

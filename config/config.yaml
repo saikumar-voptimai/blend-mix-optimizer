@@ -1,0 +1,76 @@
+# ═══════════════════════════════════════════════════════════════════
+# BF-02 Ore Blend Optimizer — Configuration File
+# Edit values here. Changes reflect automatically on next app restart.
+# ═══════════════════════════════════════════════════════════════════
+
+# ── Default target blend quantity (MT) ────────────────────────────
+default_target_qty: 3800.0
+
+# ── Fallback price if ore not listed below (₹/MT) ─────────────────
+fallback_price: 5000.0
+
+# ── Default ore prices (₹/MT) ─────────────────────────────────────
+ore_prices:
+  NMDC ROM:               8739.0
+  NMDC Donimalai:         5684.0
+  Bacheli Fines O/S:     10000.0
+  Lloyds Pellet (Sarda):  9650.0
+  Lloyds Fines O/S:       6162.0
+  Lloyds CLO:             8051.0
+  JRS Ventures CLO:       6831.0
+  Jayaswal Neco:          6650.0
+  Gomti CLO:              5349.0
+  Titani Ferrous CLO:     4939.0
+  Geomin CLO:             3827.0
+  Acore Industries:       8473.0
+  Sinter (SP-02):         5282.0
+
+# ── Sinter constraints (fraction of total blend) ──────────────────
+sinter_min_pct: 0.50    # Sinter must be at least 50% of blend
+sinter_max_pct: 0.70    # Sinter cannot exceed 70% of blend
+
+# ── Fe constraint ────────────────────────────────────────────────
+# Minimum Fe% of the blend (uses Effective Fe% = Fe(T)% + FeO×0.7773 when Sinter is selected)
+fe_min_pct: 55.0
+
+# ── Slag constraint ───────────────────────────────────────────────
+# Maximum allowable slag-forming material in the blend (MT)
+# Slag = Σ(x_i × (SiO2_i + Al2O3_i + CaO_i + MgO_i + MnO_i) / 100)
+target_slag_qty: 700.0
+
+# ── Ore minimum % constraints (% of total blend) ──────────────────
+# P25 = 25th percentile of daily ore usage from BF-02 DPR actuals
+# Set to 0 to apply no minimum for an ore
+# fallback_min_pct applies if ore is not listed here
+fallback_min_pct: 0.5
+
+ore_min_pct:
+  NMDC ROM:               0.0
+  NMDC Donimalai:         0.0
+  Bacheli Fines O/S:      0.0
+  Lloyds Pellet (Sarda):  0.0
+  Lloyds Fines O/S:       0.0
+  Lloyds CLO:             0.0
+  JRS Ventures CLO:       0.0
+  Jayaswal Neco:          0.0
+  Gomti CLO:              0.0
+  Titani Ferrous CLO:     0.0
+  Geomin CLO:             0.0
+  Acore Industries:       0.0
+  Sinter (SP-02):         0.0
+
+# ── P25 reference values (commented out — uncomment to activate) ──
+# ore_min_pct:
+#   NMDC ROM:               9.65
+#   NMDC Donimalai:         1.02
+#   Bacheli Fines O/S:      3.55
+#   Lloyds Pellet (Sarda):  0.25
+#   Lloyds Fines O/S:       7.22
+#   Lloyds CLO:            15.74
+#   JRS Ventures CLO:       3.41
+#   Jayaswal Neco:          0.83
+#   Gomti CLO:              8.18
+#   Titani Ferrous CLO:     0.59
+#   Geomin CLO:             9.02
+#   Acore Industries:       0.77
+#   Sinter (SP-02):        65.01

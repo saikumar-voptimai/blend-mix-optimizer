@@ -19,7 +19,6 @@ def run_grid_search(
     prices: dict,
     target_qty: float,
     step_size: float,
-    goal: str,
     chemistry_df: pd.DataFrame,
 ) -> pd.DataFrame:
     n = len(selected_ores)
@@ -79,13 +78,7 @@ def run_grid_search(
 
     df = pd.DataFrame(results)
 
-    # Sort by goal
-    if goal == "Minimize Cost":
-        df = df.sort_values("Cost/MT (₹)", ascending=True)
-    elif goal == "Maximize Fe%":
-        df = df.sort_values("Fe%", ascending=False)
-    elif goal == "Minimize Slag%":
-        df = df.sort_values("Slag%", ascending=True)
+    df = df.sort_values("Cost/MT (₹)", ascending=True)
 
     df = df.reset_index(drop=True)
     df.index = df.index + 1
