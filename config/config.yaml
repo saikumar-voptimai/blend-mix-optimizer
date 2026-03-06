@@ -26,8 +26,8 @@ ore_prices:
   Sinter (SP-02):         5282.0
 
 # ── Sinter constraints (fraction of total blend) ──────────────────
-sinter_min_pct: 0.50    # Sinter must be at least 50% of blend
-sinter_max_pct: 0.70    # Sinter cannot exceed 70% of blend
+sinter_min_pct: 0.50    # Sinter must be at least x% of blend
+sinter_max_pct: 0.70    # Sinter cannot exceed y% of blend
 
 # ── Fe constraint ────────────────────────────────────────────────
 # Minimum Fe% of the blend (uses Effective Fe% = Fe(T)% + FeO×0.7773 when Sinter is selected)
@@ -57,23 +57,7 @@ ore_min_pct:
   Titani Ferrous CLO:     0.0
   Geomin CLO:             0.0
   Acore Industries:       0.0
-  # Sinter (SP-02):         0.0
 
-# ── P25 reference values (commented out — uncomment to activate) ──
-# ore_min_pct:
-#   NMDC ROM:               9.65
-#   NMDC Donimalai:         1.02
-#   Bacheli Fines O/S:      3.55
-#   Lloyds Pellet (Sarda):  0.25
-#   Lloyds Fines O/S:       7.22
-#   Lloyds CLO:            15.74
-#   JRS Ventures CLO:       3.41
-#   Jayaswal Neco:          0.83
-#   Gomti CLO:              8.18
-#   Titani Ferrous CLO:     0.59
-#   Geomin CLO:             9.02
-#   Acore Industries:       0.77
-#   Sinter (SP-02):        65.01
 
 # ── Coke / Nut Coke / PCI Ash Analysis (% of ash) ─────────────────
 # Source: BF-02 lab analysis (fuel.xlsx)
