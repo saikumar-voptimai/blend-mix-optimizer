@@ -20,13 +20,15 @@ CONFIG_FILE = Path(__file__).parent / "config.yaml"
 class Config:
     default_target_qty: float
     fallback_price:     float
-    fallback_min_pct:   float
+    fallback_max_pct:   float
+    min_fe_production_mt: float
     sinter_min_pct:     float
     sinter_max_pct:     float
-    fe_min_pct:         float
+    feo_in_slag:        float
+    si_in_slag:         float
     target_slag_qty:    float
     ore_prices:            dict
-    ore_min_pct:           dict
+    ore_max_pct:           dict
     coke_ash_analysis:     dict
     nut_coke_ash_analysis: dict
     pci_ash_analysis:      dict
@@ -41,13 +43,15 @@ def load_config() -> Config:
     return Config(
         default_target_qty = float(raw["default_target_qty"]),
         fallback_price      = float(raw["fallback_price"]),
-        fallback_min_pct    = float(raw["fallback_min_pct"]),
+        fallback_max_pct    = float(raw["fallback_max_pct"]),
+        min_fe_production_mt = float(raw["min_fe_production_mt"]),
         sinter_min_pct      = float(raw["sinter_min_pct"]),
         sinter_max_pct      = float(raw["sinter_max_pct"]),
-        fe_min_pct          = float(raw["fe_min_pct"]),
+        feo_in_slag         = float(raw["feo_in_slag"]),
+        si_in_slag          = float(raw["si_in_slag"]),
         target_slag_qty     = float(raw["target_slag_qty"]),
         ore_prices             = {k: float(v) for k, v in raw["ore_prices"].items()},
-        ore_min_pct            = {k: float(v) for k, v in raw["ore_min_pct"].items()},
+        ore_max_pct            = {k: float(v) for k, v in raw["ore_max_pct"].items()},
         coke_ash_analysis      = {k: float(v) for k, v in raw["coke_ash_analysis"].items()},
         nut_coke_ash_analysis  = {k: float(v) for k, v in raw["nut_coke_ash_analysis"].items()},
         pci_ash_analysis       = {k: float(v) for k, v in raw["pci_ash_analysis"].items()},

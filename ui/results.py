@@ -5,6 +5,7 @@ UI Results — Best blend card, balanced results display, and top blends table.
 import streamlit as st
 import pandas as pd
 from engine.blend_calculator import BlendResult
+from config.config import cfg
 from engine.fuel_calculator import FuelInput, FuelSlagResult, calculate_fuel_slag
 
 
@@ -13,19 +14,31 @@ from engine.fuel_calculator import FuelInput, FuelSlagResult, calculate_fuel_sla
 def render_best_blend_card(result: BlendResult, fuel_input: FuelInput = None):
     """Render the minimum cost optimal blend card."""
     st.subheader("💰 Minimum Cost Blend")
+    if getattr(result, 'fe_constraint_relaxed', False):
+        st.warning(
+            f"⚠️ Fe production constraint relaxed — selected ores cannot reach "
+            f"{cfg.min_fe_production_mt:.0f} MT Fe production. "
+            f"Blend achieves {result.effective_fe_pct:.2f}% Fe. "
+            f"Consider lowering min_fe_production_mt in config."
+        )
 
     # Fuel slag
     fuel_result = calculate_fuel_slag(fuel_input) if fuel_input else None
     total_slag  = result.slag_mt + (fuel_result.total_fuel_slag_mt if fuel_result else 0)
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    fe_production_mt = result.effective_fe_pct / 100.0 * result.total_qty
+
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
     col1.metric("Fe%",            f"{result.effective_fe_pct:.2f}%")
-    col2.metric("Ore Slag MT",    f"{result.slag_mt:.1f}")
-    col3.metric("Total BF Slag",  f"{total_slag:.1f} MT",
+    col2.metric("Fe Production",  f"{fe_production_mt:.1f} MT",
+                delta=f"min {cfg.min_fe_production_mt:.0f} MT",
+                delta_color="off")
+    col3.metric("Ore Slag MT",    f"{result.slag_mt:.1f}")
+    col4.metric("Total BF Slag",  f"{total_slag:.1f} MT",
                 delta=f"+{fuel_result.total_fuel_slag_mt:.1f} from fuel" if fuel_result else None,
                 delta_color="inverse")
-    col4.metric("Cost/MT",        f"₹{result.cost_per_mt:,.0f}")
-    col5.metric("Total Cost",     f"₹{result.total_cost/100000:.2f}L")
+    col5.metric("Cost/MT",        f"₹{result.cost_per_mt:,.0f}")
+    col6.metric("Total Cost",     f"₹{result.total_cost/100000:.2f}L")
 
     # Fuel slag breakdown
     if fuel_result:
@@ -79,7 +92,7 @@ def render_top_blends_table(grid_df: pd.DataFrame):
     st.caption(f"{len(grid_df)} valid blends found via grid search")
 
     display_cols = [
-        "Fe%", "SiO2%", "Al2O3%", "CaO%", "MgO%", "TiO2%",
+        "Fe%", "Fe Production (MT)", "SiO2%", "Al2O3%", "CaO%", "MgO%", "TiO2%",
         "Slag%", "Slag (MT)", "Cost/MT (₹)", "Total Cost (₹)", "Total Qty (MT)"
     ]
     display_cols = [c for c in display_cols if c in grid_df.columns]
