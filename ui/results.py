@@ -26,13 +26,19 @@ def render_best_blend_card(result: BlendResult, fuel_input: FuelInput = None):
     fuel_result = calculate_fuel_slag(fuel_input) if fuel_input else None
     total_slag  = result.slag_mt + (fuel_result.total_fuel_slag_mt if fuel_result else 0)
 
-    fe_production_mt = result.effective_fe_pct / 100.0 * result.total_qty
+    ore_fe_mt    = result.effective_fe_pct / 100.0 * result.total_qty
+    fuel_fe_mt   = fuel_result.total_fuel_fe_mt if fuel_result else 0.0
+    fuel_qty_mt  = (fuel_input.coke_qty_mt + fuel_input.nut_coke_qty_mt + fuel_input.pci_qty_mt) if fuel_input else 0.0
+    total_fe_mt  = ore_fe_mt + fuel_fe_mt
+    final_fe_pct = (total_fe_mt / result.total_qty * 100) if result.total_qty > 0 else result.effective_fe_pct
 
     col1, col2, col3, col4, col5, col6 = st.columns(6)
-    col1.metric("Fe%",            f"{result.effective_fe_pct:.2f}%")
-    col2.metric("Fe Production",  f"{fe_production_mt:.1f} MT",
-                delta=f"min {cfg.min_fe_production_mt:.0f} MT",
+    col1.metric("Fe%",            f"{final_fe_pct:.2f}%",
+                delta=f"ore only {result.effective_fe_pct:.2f}%" if fuel_fe_mt > 0 else None,
                 delta_color="off")
+    col2.metric("Fe Production",  f"{total_fe_mt:.1f} MT",
+                delta=f"+{fuel_fe_mt:.1f} from fuel" if fuel_fe_mt > 0 else f"min {cfg.min_fe_production_mt:.0f} MT",
+                delta_color="normal" if fuel_fe_mt > 0 else "off")
     col3.metric("Ore Slag MT",    f"{result.slag_mt:.1f}")
     col4.metric("Total BF Slag",  f"{total_slag:.1f} MT",
                 delta=f"+{fuel_result.total_fuel_slag_mt:.1f} from fuel" if fuel_result else None,
@@ -52,6 +58,16 @@ def render_best_blend_card(result: BlendResult, fuel_input: FuelInput = None):
                        f"Ash: {fuel_input.pci_ash_pct}% × {fuel_input.pci_qty_mt:.0f} MT")
             fc4.metric("Total Fuel Slag", f"{fuel_result.total_fuel_slag_mt:.1f} MT")
 
+            st.divider()
+            fe1, fe2, fe3, fe4 = st.columns(4)
+            fe1.metric("Coke Fe",       f"{fuel_result.coke_fe_mt:.2f} MT",
+                       f"Fe2O3 in ash → Fe")
+            fe2.metric("Nut Coke Fe",   f"{fuel_result.nut_coke_fe_mt:.2f} MT",
+                       f"Fe2O3 in ash → Fe")
+            fe3.metric("PCI Fe",        f"{fuel_result.pci_fe_mt:.2f} MT",
+                       f"Fe2O3 in ash → Fe")
+            fe4.metric("Total Fuel Fe", f"{fuel_result.total_fuel_fe_mt:.2f} MT")
+
     with st.expander("Full chemistry + composition"):
         qty_cols = st.columns(len(result.quantities))
         for i, (ore, qty) in enumerate(result.quantities.items()):
@@ -59,9 +75,9 @@ def render_best_blend_card(result: BlendResult, fuel_input: FuelInput = None):
             qty_cols[i].metric(ore, f"{qty:.0f} MT", f"{pct:.1f}%")
 
         st.divider()
-        # When Sinter is in blend, show Fe% = Fe(T)% + FeO×0.7773 (FeO is separate in chemistry sheet)
-        # When no Sinter, Fe% = Fe(T)% as usual
-        fe_display = f"{result.effective_fe_pct:.3f}%" if result.feo_pct > 0 else f"{result.fe_pct:.3f}%"
+        # Fe% — fuel-adjusted if fuel present, else ore-only
+        fe_display = f"{final_fe_pct:.3f}%" if fuel_fe_mt > 0 else (
+                     f"{result.effective_fe_pct:.3f}%" if result.feo_pct > 0 else f"{result.fe_pct:.3f}%")
         chem_rows = [
             ("Fe%",     fe_display),
             ("SiO2%",   f"{result.sio2_pct:.3f}%"),
@@ -82,7 +98,7 @@ def render_best_blend_card(result: BlendResult, fuel_input: FuelInput = None):
 
 # ── Single-goal top blends table ─────────────────────────────────────────────
 
-def render_top_blends_table(grid_df: pd.DataFrame):
+def render_top_blends_table(grid_df: pd.DataFrame, fuel_input: FuelInput = None):
     """Render the top blends comparison table sorted by cost."""
     if grid_df.empty:
         st.info("No comparison blends generated. Try reducing step size or expanding availability.")
@@ -91,12 +107,21 @@ def render_top_blends_table(grid_df: pd.DataFrame):
     st.subheader("Top Blends — Sorted by Cost")
     st.caption(f"{len(grid_df)} valid blends found via grid search")
 
+    show_df = grid_df.copy()
+
+    # Adjust Fe% and Fe Production to include fuel Fe contribution
+    if fuel_input and "Fe%" in show_df.columns and "Fe Production (MT)" in show_df.columns:
+        fuel_result = calculate_fuel_slag(fuel_input)
+        fuel_fe_mt  = fuel_result.total_fuel_fe_mt
+        show_df["Fe Production (MT)"] = show_df["Fe Production (MT)"] + fuel_fe_mt
+        show_df["Fe%"] = show_df["Fe Production (MT)"] / show_df["Total Qty (MT)"] * 100
+
     display_cols = [
         "Fe%", "Fe Production (MT)", "SiO2%", "Al2O3%", "CaO%", "MgO%", "TiO2%",
         "Slag%", "Slag (MT)", "Cost/MT (₹)", "Total Cost (₹)", "Total Qty (MT)"
     ]
-    display_cols = [c for c in display_cols if c in grid_df.columns]
-    show_df = grid_df[display_cols].head(20).copy()
+    display_cols = [c for c in display_cols if c in show_df.columns]
+    show_df = show_df[display_cols].head(20).copy()
 
     for col in show_df.columns:
         if "₹" in col or "Cost" in col:

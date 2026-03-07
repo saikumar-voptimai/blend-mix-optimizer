@@ -122,7 +122,7 @@ def main():
     with tab2:
         render_best_blend_card(optimal_result, fuel_input)
         st.divider()
-        render_top_blends_table(grid_df)
+        render_top_blends_table(grid_df, fuel_input)
 
     with tab3:
         if not grid_df.empty:
