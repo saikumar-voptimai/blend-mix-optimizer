@@ -1,114 +1,345 @@
-# Blend-Mix-Optimizer-2
+﻿# Blend-Mix-Optimizer-2
 
-Ore blend mix optimization system for the BF‑02 blast furnace bunker. This Streamlit application helps process engineers design ore blends that meet chemistry constraints while controlling slag, iron content and cost. It also estimates fuel slag contribution based on coke, nut coke and PCI inputs.
+**Ore Blend Mix Optimization System for BF-02 Blast Furnace**
 
----
-
-## Key features ✅
-
-- **Interactive ore catalogue** – Browse FY 2025‑26 average chemistry for all bunker ores and materials. Click an ore to view a detailed profile.
-- **LP‑based optimal blend** – Linear programming optimizer finds a feasible, cost‑minimised blend subject to:
-  * Target blend quantity and user‑specified availability limits
-  * Maximum slag burden and minimum effective Fe content
-  * Sinter fraction bounds (must be within configured min/max percent of the blend)
-  * Per‑ore minimum percentage constraints driven by historical usage (configurable)
-- **Overflow resolver** – If the LP solution exceeds an ore’s available quantity, the algorithm caps the offending ore and redistributes the deficit down a user‑defined priority list, issuing warnings along the way.
-- **Grid search around optimum** – Automatically sample neighbouring blends within a search radius to build a Pareto front of cost vs. chemistry/slag. Results are ranked and can be compared side‑by‑side.
-- **Fuel slag calculator** – Estimate slag contribution from coke, nut coke and PCI using ash percentages and lab‑reported oxide analyses from `config.yaml`.
-- **Rich visualization dashboard** –
-  * Pareto scatter plot of all valid blends
-  * Fe contribution waterfall by ore
-  * Composition bar charts for top blends
-  * Radar chart comparison of selected candidate blends
-  * Tables showing quantities, costs and chemistry for best and neighbouring blends
+A comprehensive Streamlit-based application that helps metallurgical and process engineers design optimal ore blends meeting strict chemistry constraints while minimizing cost. The system leverages linear programming (via SciPy) to optimize blend composition, includes intelligent overflow resolution, and provides interactive visualization of alternative solutions.
 
 ---
 
-## Project structure 📁
+## Key Features ✅
 
-```text
-app.py                 # Main Streamlit entry point
+- **Interactive Ore Catalogue** – Browse FY 2025-26 average chemistry profiles for all available bunker ores and materials with detailed oxide compositions and slag estimates.
+
+- **Advanced LP-Based Optimizer** – Minimizes blend cost subject to:
+  * Fixed total blend quantity constraint
+  * Maximum slag burden (MT) limit
+  * Minimum effective Fe production (MT) with FeO-to-Fe conversion factor
+  * Sinter fraction bounds (configurable min/max % when sinter ores detected)
+  * Per-ore maximum percentage caps (configurable by ore or global fallback)
+  * Operator-specified availability limits for each ore
+  * **Graceful fallback**: If Fe constraint is infeasible, automatically retries with relaxed constraint only
+
+- **Intelligent Overflow Resolver** – When LP solution recommends quantities exceeding availability:
+  * Automatically caps the overflowing ore at max available
+  * Redistributes deficit proportionally to remaining ores
+  * Issues clear warnings about which ores were capped and by how much
+
+- **Advanced Grid Search & Pareto Front** – Explore alternatives by sampling nearby blends within configurable step size:
+  * Builds Pareto front of cost vs. chemistry/slag across all valid combinations
+  * Pre-calculates combination count estimate to avoid excessive search spaces
+  * Ranks solutions by user-selected objective (cost, slag, Fe content)
+  * Compare top N candidates side-by-side with full chemistry details
+
+- **Fuel Slag Calculator** – Estimates slag contribution from coke, nut coke, and PCI inputs:
+  * Uses ash percentages and detailed oxide analyses (SiO2, Al2O3, CaO, MgO, Fe2O3, P2O5) from config
+  * Integrates seamlessly with blend results
+  * Configurable defaults for sidebar fuel input widgets
+
+- **Rich Interactive Dashboard** –
+  * Pareto scatter plot with cost vs. slag/Fe highlighting
+  * Fe contribution waterfall chart by ore
+  * Composition bar charts for top candidate blends
+  * Radar chart comparison of selected solutions
+  * Detailed tables: quantities, unit costs, total costs, and full chemistry profiles
+  * Real-time KPI cards (kg/MT values) for selected blends
+
+---
+
+## Project Structure 📁
+
+`	ext
+app.py                 # Main Streamlit entry point; orchestrates tabs and data flow
 
 config/
-  config.py            # YAML loader; exposes `cfg` object used throughout
-  config.yaml          # Default parameters, prices, chemistry and limits
+  __init__.py          # Package initialization
+  config.py            # Typed Config dataclass; YAML loader; exposes 'cfg' singleton
+  config.yaml          # All parameters: prices, chemistry, constraints, fuel ash data
 
 data/
-  ore_chemistry.py     # Load/pre‑process ore chemistry from Excel
+  ore_chemistry.py     # Load and preprocess ore chemistry from Excel source
 
 engine/
-  blend_calculator.py  # Calculate blend chemistry, KPIs and format results
-  optimizer.py         # LP cost minimiser with slag/Fe/sinter constraints
-  overflow_resolver.py # Capping & redistribution logic for availability overflows
-  grid_search.py       # Brute‑force search around optimum and combination estimator
-  fuel_calculator.py   # Compute fuel ash & slag from coke/PCI inputs
+  optimizer.py         # Core LP solver; uses scipy.optimize.linprog
+  blend_calculator.py  # Computes blend stats (chemistry, slag, Fe, cost); BlendResult dataclass
+  overflow_resolver.py # Caps overflowing ores; redistributes deficit
+  grid_search.py       # Grid search around optimum; estimates combo count
+  fuel_calculator.py   # Fuel ash/slag computation from coke/PCI inputs
 
 ui/
-  sidebar.py           # Streamlit widgets for user inputs
-  results.py           # Render best‑blend card, tables and warnings
-  charts.py            # Plotly figures used in dashboard
+  sidebar.py           # Streamlit sidebar widgets for user inputs & selections
+  results.py           # Render best-blend card, tables, and operator warnings
+  charts.py            # Plotly figures: Pareto, waterfall, composition, radar
 
 assets/
-  BF02_Ores_Chemical_Composition.xlsx  # Source ore chemistry data
-
-```
+  BF02_Ores_Chemical_Composition.xlsx  # Source ore chemistry data (FY 2025-26 averages)
+`
 
 ---
 
 ## Configuration 🔧
 
-All operational parameters and defaults live in `config/config.yaml`. Highlights:
+All operational parameters live in `config/config.yaml`. Key sections:
 
-- **Blend targets** – `default_target_qty`, `target_slag_qty`, `fe_min_pct`.
-- **Ore prices** – Per‑MT costs with a `fallback_price` for unlisted ores.
-- **Sinter limits** – `sinter_min_pct` / `sinter_max_pct` applied when any ore name contains “sinter”.
-- **Ore minimums** – `ore_min_pct` map or global `fallback_min_pct`.
-- **Fuel ash analyses** – Used by the fuel slag calculator.
-- **Sidebar defaults** – Initial quantities and ash% for coke, nut coke and PCI inputs.
+### Blend Parameters
+- `default_target_qty` – Default blend size (MT)
+- `target_slag_qty` – Maximum slag burden allowed (MT)
+- `min_fe_production_mt` – Minimum usable Fe in blend (MT)
 
-Modify values and restart the app to apply changes. The YAML structure is self‑documenting with comments.
+### Ore Constraints
+- `ore_prices` – Dict of ore names to \$/MT cost; uses `fallback_price` for unknowns
+- `ore_max_pct` – Dict of ore names to max % of blend; uses `fallback_max_pct` for unknowns
+- `sinter_min_pct` / `sinter_max_pct` – Hard bounds on ores containing "sinter" in name
+
+### Fuel Ash Data
+- `coke_ash_analysis`, `nut_coke_ash_analysis`, `pci_ash_analysis` – Oxide compositions (SiO2, Al2O3, CaO, MgO, Fe2O3, P2O5)
+- `feo_in_slag`, `si_in_slag` – Slag composition factors for fuel contribution
+
+### Sidebar Defaults
+- `coke_defaults`, `nut_coke_defaults`, `pci_defaults` – Initial quantities and ash % for fuel inputs
+
+**To apply changes:** Modify values in `config.yaml` and restart the Streamlit app.
 
 ---
 
-## Requirements & setup 🛠️
+## How It Works ⚙
 
-- **Python** ≥ 3.11
-- Dependencies listed in `pyproject.toml` / `requirements.txt`:
-  `streamlit`, `pandas`, `numpy`, `scipy`, `plotly`, `openpyxl`.
+### 1. **Load & Select**
+   - Load ore chemistry from Excel source via `data/ore_chemistry.py`
+   - Select available ores from the catalogue in the sidebar
+   - Specify quantities (MT) available for each ore
 
-```bash
+### 2. **Optimize**
+   - Click "Run Optimizer" to solve the LP problem:
+     * **Objective**: Minimize total cost = Σ(quantity × price)
+     * **Constraints**:
+       - Total blend = target quantity
+       - Total slag ≤ slag limit (MT)
+       - Total effective Fe ≥ Fe minimum (MT)
+       - Sinter ores bounded by configured min/max %
+       - Per-ore quantity ≤ availability & % cap
+   - If **Fe constraint fails**: Solver retries with slack (slag-only constraint)
+   - Result: Quantities for each ore that form the optimal blend
+
+### 3. **Resolve Overflows** (if needed)
+   - If any ore quantity exceeds availability, `overflow_resolver.py` caps it
+   - Deficit redistributed proportionally to other ores
+   - Warnings issued for capped ores
+
+### 4. **Grid Search** (Optional)
+   - Sample blends within ± step size of each ore's optimum quantity
+   - Keeps only chemically feasible blends (slag ≤ limit, Fe ≥ minimum)
+   - Ranks by cost, slag, or Fe—user selectable
+   - Builds Pareto front for comparison
+
+### 5. **Visualize & Compare**
+   - View best blend card with KPIs
+   - Inspect Pareto scatter, composition bars, Fe waterfall, radar comparison
+   - Download or compare ranked candidates
+
+---
+
+## Requirements & Setup 🛠
+
+### Prerequisites
+- **Python** ≥ 3.11
+- **Dependencies** (in `pyproject.toml` / `requirements.txt`):
+  - `streamlit` ≥ 1.55.0
+  - `pandas` ≥ 2.3.3
+  - `numpy` ≥ 2.4.2
+  - `scipy` ≥ 1.17.1 (LP solver)
+  - `plotly` ≥ 6.6.0 (interactive charts)
+  - `openpyxl` ≥ 3.1.5 (Excel chemistry file)
+  - `pyyaml` ≥ 6.0.3 (config parsing)
+
+### Installation
+
+**Option 1: Virtual environment + pip**
+\\\ash
 python -m venv .venv
-.venv\Scripts\activate   # Windows
+.venv\Scripts\activate    # Windows PowerShell
+# or: .venv\Scripts\Activate.ps1 (if running scripts is allowed)
 pip install -r requirements.txt
-```
+\\\
 
-Or install via your preferred tool as long as the same packages are available.
+**Option 2: Poetry**
+\\\ash
+poetry install
+poetry run streamlit run app.py
+\\\
 
----
-
-## Running the application 🚀
-
-```bash
+**Option 3: Conda**
+\\\ash
+conda env create -f environment.yml
+conda activate blend-optimizer
 streamlit run app.py
-```
-
-Use the sidebar to:
-
-1. Load the ore catalogue and select materials for the blend.
-2. Specify available quantities, prices, target blend size, step size and fuel inputs.
-3. Choose optimisation goals and run the LP solver.
-4. Inspect the optimal blend, warnings (overflow or infeasibility), and explore nearby alternatives.
-
-Additional tabs allow catalogue browsing and comparing ranked blends.
+\\\
 
 ---
 
-## Extending and customizing 💡
+## Running the Application 🚀
 
-- Swap out the Excel file or adapt `data/ore_chemistry.py` to support other furnaces or time periods.
-- Add or modify business rules (e.g. new constraints, KPIs) in the `engine/` modules and update `ui/` components accordingly.
-- Adjust default sidebar values or add new input fields by editing `ui/sidebar.py` and updating `config.yaml`.
+\\\ash
+streamlit run app.py
+\\\
+
+The app will open at `http://localhost:8501` in your default browser.
+
+### Typical Workflow
+
+1. **Catalogue Tab** – Review ore chemistry profiles and understand available materials.
+
+2. **Optimization Tab** (default):
+   - Load the ore catalogue (cached after first load)
+   - Select ores for your blend from checkboxes
+   - Set available quantities (MT), prices (\$/MT), target blend size
+   - Specify fuel inputs (coke, nut coke, PCI) quantities and ash percentages
+   - Adjust slag and Fe constraints if needed
+   - Click **"Run Optimizer"** → view the best-cost blend
+   - Inspect warnings, KPIs, and composition details
+
+3. **Grid Search Tab**:
+   - Choose step size (how far to search from optimum)
+   - Click **"Run Grid Search"** → builds Pareto front
+   - Select ranking objective (cost, slag, Fe)
+   - View top N alternative blends; compare using radar/bar charts
+
+4. **Extra Tools**:
+   - **Fuel Slag Calculator** – Standalone tool to estimate slag from fuel inputs only
+   - **Combination Estimator** – Preview how many blends will be sampled before grid search
 
 ---
 
-Feel free to fork, experiment, and adapt for your blast‑furnace planning needs!
+## Module Reference
+
+### `config/config.py`
+Loads `config.yaml` into a `Config` dataclass. Exposes `cfg` object globally.
+
+**Key Properties:**
+- `cfg.default_target_qty` – Target blend quantity (MT)
+- `cfg.ore_prices` – Dict of ore → price (\$/MT)
+- `cfg.ore_max_pct` – Dict of ore → max % of blend
+- `cfg.target_slag_qty`, `cfg.min_fe_production_mt` – Constraints
+- `cfg.sinter_min_pct`, `cfg.sinter_max_pct` – Sinter bounds
+- Fuel ash analyses & defaults
+
+### `engine/optimizer.py`
+**Function:** `run_optimizer(selected_ores, max_quantities, prices, target_qty, chemistry_df) -> BlendResult | None`
+
+Solves LP to minimize cost with full constraint set. Auto-retries with relaxed Fe constraint if infeasible.
+
+**Returns:** `BlendResult` object with:
+- `quantities` – Dict[ore_name → MT]
+- `total_cost` – Total blend cost (\$)
+- `chemistry_details` – Full oxide composition
+- `fe_constraint_relaxed` – True if Fe constraint was relaxed
+- `is_feasible` – True if solution is valid
+
+### `engine/blend_calculator.py`
+**Function:** `calculate_blend(quantities, prices, chemistry_df) -> BlendResult`
+
+Computes blend chemistry, KPIs (slag %, Fe %, cost), and formats for rendering.
+
+### `engine/overflow_resolver.py`
+**Function:** `resolve_overflow(quantities, max_quantities) -> tuple[Dict, List[str]]`
+
+Caps overflowing ores; redistributes deficit. Returns updated quantities & warning messages.
+
+### `engine/grid_search.py`
+**Functions:**
+- `run_grid_search(...)` – Samples blends around optimum within step size
+- `estimate_combination_count(...)` – Pre-calculates expected search space size
+
+### `engine/fuel_calculator.py`
+**Function:** `calculate_fuel_slag(coke_mt, nut_coke_mt, pci_mt, coke_ash_pct, ...) -> dict`
+
+Computes slag from fuel inputs using ash % and oxide analyses.
+
+### `ui/sidebar.py`
+Renders all user input widgets: ore selection, quantities, prices, fuel inputs, constraint sliders.
+
+### `ui/results.py`
+Renders best-blend KPI card, detailed tables, and operator warnings.
+
+### `ui/charts.py`
+Plotly figure generators: Pareto scatter, Fe waterfall, composition bars, radar comparison.
+
+### `data/ore_chemistry.py`
+**Function:** `load_ore_chemistry() -> pd.DataFrame`
+
+Reads `assets/BF02_Ores_Chemical_Composition.xlsx`, normalizes column names, caches result.
+
+---
+
+## Customization & Extension 💡
+
+### Add a New Ore
+1. Add row to `BF02_Ores_Chemical_Composition.xlsx`
+2. Add price to `ore_prices` in `config.yaml`
+3. (Optional) Set max % cap in `ore_max_pct`
+4. Restart app; new ore appears in sidebar checklist
+
+### Change Constraints
+1. Edit `config.yaml` (e.g., `target_slag_qty`, `min_fe_production_mt`, sinter bounds)
+2. Restart app
+3. New constraints take effect on next optimization
+
+### Add a New KPI
+1. Compute metric in `engine/blend_calculator.py` within `calculate_blend()`
+2. Add field to `BlendResult` dataclass
+3. Display in `ui/results.py` (best-blend card or table)
+
+### Support Multi-Furnace
+1. Extend `config.py` to load multiple `.yaml` files or add a selector widget
+2. Pass selected config to optimizer & calculator functions
+3. Load furnace-specific Excel file in `data/ore_chemistry.py`
+
+---
+
+## Troubleshooting 🔧
+
+### "Optimizer returned None — infeasible problem"
+- **Cause**: Selected ore mix cannot satisfy all constraints simultaneously
+- **Fix**: 
+  * Relax `target_slag_qty` or `min_fe_production_mt` in sidebar or config
+  * Add more diverse ores to increase feasibility space
+  * Lower per-ore % caps in `config.yaml`
+
+### "Grid search takes too long"
+- **Cause**: Step size is too small or too many ores selected
+- **Fix**: 
+  * Increase step size (e.g., 5 MT → 10 MT)
+  * Pre-check combo estimate using "Combination Estimator" tool
+  * Reduce number of selected ores
+
+### "Ore chemistry appears stale"
+- **Cause**: Streamlit caching from previous run
+- **Fix**: Restart the app or use Streamlit's "Rerun" button
+
+### "Config changes not taking effect"
+- **Cause**: Changes made but app not restarted
+- **Fix**: Save `config.yaml` and restart Streamlit (\Ctrl+C\ in terminal, then \streamlit run app.py\)
+
+---
+
+## Performance Notes 📊
+
+- **Optimizer**: ~50 ms for 10 ores (LP is fast)
+- **Grid search**: ~1 s per 1000 combination samples (depends on ore count and step size)
+- **Visualization**: Plotly rendering ~100 ms
+- **Caching**: Ore chemistry and config cached on first load; clear with app restart
+
+---
+
+## License & Attribution 📄
+
+See [LICENSE](LICENSE) file for terms.
+
+---
+
+## Contributing & Feedback 🤝
+
+Found a bug? Have a feature request? Please open an issue or reach out to the development team.
+
+---
+
+**Happy optimizing!** ⛏️
