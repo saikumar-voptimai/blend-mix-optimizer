@@ -163,12 +163,15 @@ All operational parameters live in `config/config.yaml`. Key sections:
 
 ### Installation
 
-**Option 1: Virtual environment + pip**
+**Option 1: Virtual environment + `uv`**
 \\\ash
 python -m venv .venv
 .venv\Scripts\activate    # Windows PowerShell
 # or: .venv\Scripts\Activate.ps1 (if running scripts is allowed)
-pip install -r requirements.txt
+# install packages using the `uv` package manager (preferred)
+uv install
+# or, if you still need to use pip:
+# pip install -r requirements.txt
 \\\
 
 **Option 2: Poetry**
