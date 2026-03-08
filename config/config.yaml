@@ -173,7 +173,7 @@ fe_loss_constant: 0.56
 
 # ── Sinter constraints (fraction of total blend) ───────────────────
 sinter_min_pct: 0.50      # Sinter must be at least 50% of blend
-sinter_max_pct: 0.70      # Sinter cannot exceed 70% of blend
+sinter_max_pct: 0.65      # Sinter cannot exceed 65% of blend
 
 
 # ── Slag chemistry correction factors ─────────────────────────────
@@ -208,7 +208,7 @@ ore_max_pct:
   Titani Ferrous CLO:     3.0
   Geomin CLO:             20.0
   Acore Industries:       3.0
-  Sinter (SP-02):         70.0  # Sinter capped at 70% of blend
+  Sinter (SP-02):         65.0  # Sinter capped at 70% of blend
 
 # ── Coke / Nut Coke / PCI Ash Analysis (% of ash) ─────────────────
 # Source: BF-02 lab analysis (fuel.xlsx)
