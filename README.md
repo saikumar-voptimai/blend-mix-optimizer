@@ -43,6 +43,8 @@ A comprehensive Streamlit-based application that helps metallurgical and process
   * Detailed tables: quantities, unit costs, total costs, and full chemistry profiles
   * Real-time KPI cards (kg/MT values) for selected blends
 
+- **Manual Blend Comparison Tool** – Allows operators to input their own ore mix and instantly compare against the optimizer’s recommendation. Displays cost deltas, gross/net Fe%, slag, full chemistry and an ore-by-ore cost breakdown (fuel-adjusted). Guidelines and results are preserved in session state for easy re-use.
+
 ---
 
 ## Project Structure 📁
@@ -69,6 +71,7 @@ ui/
   sidebar.py           # Streamlit sidebar widgets for user inputs & selections
   results.py           # Render best-blend card, tables, and operator warnings
   charts.py            # Plotly figures: Pareto, waterfall, composition, radar
+  manual_blend.py      # UI tab for manual blend entry and comparison with optimal result
 
 assets/
   BF02_Ores_Chemical_Composition.xlsx  # Source ore chemistry data (FY 2025-26 averages)
@@ -125,13 +128,20 @@ All operational parameters live in `config/config.yaml`. Key sections:
    - Deficit redistributed proportionally to other ores
    - Warnings issued for capped ores
 
-### 4. **Grid Search** (Optional)
+### 4. **Manual Blend Comparison** (Optional)
+   - Switch to the "Manual Blend" tab after running the optimizer
+   - Enter ore quantities of your choice and click **"Compare Blends"**
+   - Review cost/MT delta, total cost impact, gross/net Fe%, slag, and full chemistry
+   - Examine ore-level cost breakdowns (with fuel slag added) to understand where differences arise
+   - Results are cached in `st.session_state` so the optimizer or grid search aren’t re‑run each time
+
+### 5. **Grid Search** (Optional)
    - Sample blends within ± step size of each ore's optimum quantity
    - Keeps only chemically feasible blends (slag ≤ limit, Fe ≥ minimum)
    - Ranks by cost, slag, or Fe—user selectable
    - Builds Pareto front for comparison
 
-### 5. **Visualize & Compare**
+### 6. **Visualize & Compare**
    - View best blend card with KPIs
    - Inspect Pareto scatter, composition bars, Fe waterfall, radar comparison
    - Download or compare ranked candidates
@@ -197,13 +207,18 @@ The app will open at `http://localhost:8501` in your default browser.
    - Click **"Run Optimizer"** → view the best-cost blend
    - Inspect warnings, KPIs, and composition details
 
-3. **Grid Search Tab**:
+3. **Manual Blend Tab** –
+   - Enter your own ore quantities and click **"Compare Blends"**
+   - See cost and chemistry deltas versus the optimizer result
+   - Useful for validating operator intuition or trial mixes
+
+4. **Grid Search Tab**:
    - Choose step size (how far to search from optimum)
    - Click **"Run Grid Search"** → builds Pareto front
    - Select ranking objective (cost, slag, Fe)
    - View top N alternative blends; compare using radar/bar charts
 
-4. **Extra Tools**:
+5. **Extra Tools**:
    - **Fuel Slag Calculator** – Standalone tool to estimate slag from fuel inputs only
    - **Combination Estimator** – Preview how many blends will be sampled before grid search
 
@@ -263,6 +278,8 @@ Renders best-blend KPI card, detailed tables, and operator warnings.
 ### `ui/charts.py`
 Plotly figure generators: Pareto scatter, Fe waterfall, composition bars, radar comparison.
 
+### `ui/manual_blend.py`
+Handles the Manual Blend tab. Accepts user-specified ore quantities, computes a blend via `engine.blend_calculator.calculate_blend`, compares against the optimizer's `BlendResult`, and renders side-by-side metrics & cost breakdown with visual cues.
 ### `data/ore_chemistry.py`
 **Function:** `load_ore_chemistry() -> pd.DataFrame`
 
