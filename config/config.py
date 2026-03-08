@@ -12,7 +12,6 @@ import yaml
 from dataclasses import dataclass, field
 import streamlit as st
 
-
 CONFIG_FILE = Path(__file__).parent / "config.yaml"
 
 
@@ -22,6 +21,7 @@ class Config:
     fallback_price:     float
     fallback_max_pct:   float
     min_fe_production_mt: float
+    fe_loss_constant:     float
     sinter_min_pct:     float
     sinter_max_pct:     float
     feo_in_slag:        float
@@ -45,6 +45,7 @@ def load_config() -> Config:
         fallback_price      = float(raw["fallback_price"]),
         fallback_max_pct    = float(raw["fallback_max_pct"]),
         min_fe_production_mt = float(raw["min_fe_production_mt"]),
+        fe_loss_constant     = float(raw["fe_loss_constant"]),
         sinter_min_pct      = float(raw["sinter_min_pct"]),
         sinter_max_pct      = float(raw["sinter_max_pct"]),
         feo_in_slag         = float(raw["feo_in_slag"]),

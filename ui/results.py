@@ -31,20 +31,29 @@ def render_best_blend_card(result: BlendResult, fuel_input: FuelInput = None):
     fuel_qty_mt  = (fuel_input.coke_qty_mt + fuel_input.nut_coke_qty_mt + fuel_input.pci_qty_mt) if fuel_input else 0.0
     total_fe_mt  = ore_fe_mt + fuel_fe_mt
     final_fe_pct = (total_fe_mt / result.total_qty * 100) if result.total_qty > 0 else result.effective_fe_pct
+    net_fe_pct   = final_fe_pct - cfg.fe_loss_constant   # after BF losses (slag FeO, flue dust, GCP dust)
 
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
-    col1.metric("Fe%",            f"{final_fe_pct:.2f}%",
-                delta=f"ore only {result.effective_fe_pct:.2f}%" if fuel_fe_mt > 0 else None,
+    # Row 1: Fe metrics (4 columns)
+    r1c1, r1c2, r1c3, r1c4 = st.columns(4)
+    r1c1.metric("Gross Fe%",     f"{final_fe_pct:.3f}%",
+                delta=f"ore only {result.effective_fe_pct:.3f}%" if fuel_fe_mt > 0 else None,
                 delta_color="off")
-    col2.metric("Fe Production",  f"{total_fe_mt:.1f} MT",
-                delta=f"+{fuel_fe_mt:.1f} from fuel" if fuel_fe_mt > 0 else f"min {cfg.min_fe_production_mt:.0f} MT",
+    r1c2.metric("Net Fe% (HM)",  f"{net_fe_pct:.3f}%",
+                delta=f"-{cfg.fe_loss_constant:.2f}% BF loss",
+                delta_color="off")
+    r1c3.metric("Fe Production", f"{total_fe_mt:.1f} MT",
+                delta=f"+{fuel_fe_mt:.1f} MT from fuel" if fuel_fe_mt > 0 else f"min {cfg.min_fe_production_mt:.0f} MT",
                 delta_color="normal" if fuel_fe_mt > 0 else "off")
-    col3.metric("Ore Slag MT",    f"{result.slag_mt:.1f}")
-    col4.metric("Total BF Slag",  f"{total_slag:.1f} MT",
-                delta=f"+{fuel_result.total_fuel_slag_mt:.1f} from fuel" if fuel_result else None,
+    r1c4.metric("Ore Slag",      f"{result.slag_mt:.1f} MT")
+
+    # Row 2: Slag + Cost (4 columns)
+    r2c1, r2c2, r2c3, r2c4 = st.columns(4)
+    r2c1.metric("Total BF Slag", f"{total_slag:.1f} MT",
+                delta=f"+{fuel_result.total_fuel_slag_mt:.1f} MT from fuel" if fuel_result else None,
                 delta_color="inverse")
-    col5.metric("Cost/MT",        f"₹{result.cost_per_mt:,.0f}")
-    col6.metric("Total Cost",     f"₹{result.total_cost/100000:.2f}L")
+    r2c2.metric("Ore Blend Qty", f"{result.total_qty:.0f} MT")
+    r2c3.metric("Cost / MT",     f"₹{result.cost_per_mt:,.0f}")
+    r2c4.metric("Total Cost",    f"₹{result.total_cost/100000:.2f} L")
 
     # Fuel slag breakdown
     if fuel_result:
@@ -78,8 +87,10 @@ def render_best_blend_card(result: BlendResult, fuel_input: FuelInput = None):
         # Fe% — fuel-adjusted if fuel present, else ore-only
         fe_display = f"{final_fe_pct:.3f}%" if fuel_fe_mt > 0 else (
                      f"{result.effective_fe_pct:.3f}%" if result.feo_pct > 0 else f"{result.fe_pct:.3f}%")
+        net_fe_display = f"{final_fe_pct - cfg.fe_loss_constant:.3f}%"
         chem_rows = [
-            ("Fe%",     fe_display),
+            ("Gross Fe%",    fe_display),
+            ("Net Fe% (HM)", net_fe_display),
             ("SiO2%",   f"{result.sio2_pct:.3f}%"),
             ("Al2O3%",  f"{result.al2o3_pct:.3f}%"),
             ("CaO%",    f"{result.cao_pct:.3f}%"),
@@ -116,8 +127,12 @@ def render_top_blends_table(grid_df: pd.DataFrame, fuel_input: FuelInput = None)
         show_df["Fe Production (MT)"] = show_df["Fe Production (MT)"] + fuel_fe_mt
         show_df["Fe%"] = show_df["Fe Production (MT)"] / show_df["Total Qty (MT)"] * 100
 
+    # Recompute Net Fe% (HM) = Gross Fe% x efficiency (after fuel adjustment)
+    if "Fe%" in show_df.columns:
+        show_df["Net Fe% (HM)"] = show_df["Fe%"] - cfg.fe_loss_constant
+
     display_cols = [
-        "Fe%", "Fe Production (MT)", "SiO2%", "Al2O3%", "CaO%", "MgO%", "TiO2%",
+        "Fe%", "Net Fe% (HM)", "Fe Production (MT)", "SiO2%", "Al2O3%", "CaO%", "MgO%", "TiO2%",
         "Slag%", "Slag (MT)", "Cost/MT (₹)", "Total Cost (₹)", "Total Qty (MT)"
     ]
     display_cols = [c for c in display_cols if c in show_df.columns]

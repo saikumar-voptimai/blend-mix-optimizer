@@ -160,6 +160,17 @@ ore_prices:
 # Example: 4 ores at 3800 MT target → Fe prod = sum of each ore's Fe contribution
 min_fe_production_mt: 2300.0
 
+# ── Fe Loss Constant ──────────────────────────────────────────────
+# Fixed Fe% points subtracted from gross blend Fe% to get net Fe%
+# arriving in hot metal after losses via flue dust, GCP dust, slag FeO
+# Source: BF-02 Fe Balance Report Feb-26 actuals (avg of 7 full days)
+#   Dust Fe loss : ~19-27 MT/day  (~96% of total loss)
+#   Slag FeO Fe  : ~1.8-2.5 MT/day (~4% of total loss)
+#   Combined     : ~0.989% of ore Fe input = 0.56 percentage points
+# Formula: net_fe_pct = gross_fe_pct - fe_loss_constant
+# Update monthly using fresh Fe Balance Report data
+fe_loss_constant: 0.56
+
 # ── Sinter constraints (fraction of total blend) ───────────────────
 sinter_min_pct: 0.50      # Sinter must be at least 50% of blend
 sinter_max_pct: 0.70      # Sinter cannot exceed 70% of blend
@@ -185,19 +196,19 @@ target_slag_qty: 700.0
 fallback_max_pct: 100.0
 
 ore_max_pct:
-  NMDC ROM:               100.0
-  NMDC Donimalai:         100.0
-  Bacheli Fines O/S:      100.0
-  Lloyds Pellet (Sarda):  100.0
-  Lloyds Fines O/S:       100.0
-  Lloyds CLO:             100.0
-  JRS Ventures CLO:       100.0
-  Jayaswal Neco:          100.0
-  Gomti CLO:              100.0
-  Titani Ferrous CLO:     100.0
-  Geomin CLO:             100.0
-  Acore Industries:       100.0
-  Sinter (SP-02):          70.0  # Sinter capped at 70% of blend
+  NMDC ROM:               30.0
+  NMDC Donimalai:         15.0
+  Bacheli Fines O/S:      10.0
+  Lloyds Pellet (Sarda):  10.0
+  Lloyds Fines O/S:       10.0
+  Lloyds CLO:             30.0
+  JRS Ventures CLO:       20.0
+  Jayaswal Neco:          20.0
+  Gomti CLO:              30.0
+  Titani Ferrous CLO:     3.0
+  Geomin CLO:             20.0
+  Acore Industries:       3.0
+  Sinter (SP-02):         70.0  # Sinter capped at 70% of blend
 
 # ── Coke / Nut Coke / PCI Ash Analysis (% of ash) ─────────────────
 # Source: BF-02 lab analysis (fuel.xlsx)

@@ -3,7 +3,8 @@ Blend Calculator — Computes chemistry, slag and cost for any blend combination
 """
 
 import pandas as pd
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from config.config import cfg, field
 from config.config import cfg
 
 # Fe/FeO molecular weight ratio: 55.845 / 71.844
@@ -96,6 +97,7 @@ def blend_results_to_dict(result: BlendResult) -> dict:
     """Convert BlendResult to flat dict for DataFrame rows."""
     row = {
         "Fe%":                result.effective_fe_pct,
+        "Net Fe% (HM)":       round(result.effective_fe_pct - cfg.fe_loss_constant, 3),
         "Fe Production (MT)": round(result.effective_fe_pct / 100.0 * result.total_qty, 1),
         "SiO2%":              result.sio2_pct,
         "Al2O3%":             result.al2o3_pct,
