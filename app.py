@@ -52,7 +52,7 @@ operator_inputs = render_sidebar(chemistry_df)
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📋 Ore Catalogue",
-    "💰 Optimal Blend",
+    "🌟 Optimal Blend",
     "📊 Comparison Charts",
     "🎯 Blend Comparison",
     "🔧 Manual Blend",
