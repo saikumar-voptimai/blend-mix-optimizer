@@ -208,7 +208,7 @@ ore_max_pct:
   Titani Ferrous CLO:     3.0
   Geomin CLO:             20.0
   Acore Industries:       3.0
-  Sinter (SP-02):         65.0  # Sinter capped at 70% of blend
+  Sinter (SP-02):         65.0  # Sinter capped at 65% of blend
 
 # ── Coke / Nut Coke / PCI Ash Analysis (% of ash) ─────────────────
 # Source: BF-02 lab analysis (fuel.xlsx)

@@ -14,7 +14,7 @@ CHEMISTRY_FILE = Path(__file__).parent.parent / "assets" / "BF02_Ores_Chemical_C
 CHEMISTRY_COLS = ["%Fe(T)", "%FeO", "%SiO2", "%Al2O3", "%CaO", "%MgO", "%TiO2", "%P", "%MnO", "%LOI"]
 
 # Slag components
-SLAG_COMPONENTS = ["%SiO2", "%Al2O3", "%CaO", "%MgO"]
+SLAG_COMPONENTS = ["%SiO2", "%Al2O3", "%CaO", "%MgO", "%MnO"]
 
 # Special ore flags for UI warnings
 ORE_FLAGS = {
