@@ -158,7 +158,8 @@ ore_prices:
 # Formula: Σ(ore_qty_i × effective_fe_i / 100) ≥ min_fe_production_mt
 # Effective Fe = Fe(T)% + FeO%×0.7773 (FeO counted separately for Sinter)
 # Example: 4 ores at 3800 MT target → Fe prod = sum of each ore's Fe contribution
-min_fe_production_mt: 2300.0
+min_fe_production_mt: 2100.0
+max_fe_production_mt: 2300.0
 
 # ── Fe Loss Constant ──────────────────────────────────────────────
 # Fixed Fe% points subtracted from gross blend Fe% to get net Fe%

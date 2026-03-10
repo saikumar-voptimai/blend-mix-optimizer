@@ -52,15 +52,17 @@ def run_optimizer(
     # Fe production = Σ(x_i × effective_fe_i / 100)
     # Effective Fe = Fe(T)% + FeO%×0.7773  (FeO is a separate column for Sinter)
     # Rewrite as ≤: -Σ(x_i × effective_fe_i / 100) ≤ -min_fe_production_mt
-    fe_coeffs = []
+    fe_min_coeffs, fe_max_coeffs = [], []
+
     for ore in selected_ores:
         fe_t = float(chemistry_df.loc[ore, "%Fe(T)"]) if "%Fe(T)" in chemistry_df.columns else 0.0
         feo  = float(chemistry_df.loc[ore, "%FeO"])   if "%FeO"   in chemistry_df.columns else 0.0
         effective_fe = fe_t + feo * FE_FROM_FEO_FACTOR
-        fe_coeffs.append(-effective_fe * 0.01)   # negative to flip ≥ into ≤
+        fe_min_coeffs.append(-effective_fe * 0.01)   # negative to flip ≥ into ≤
+        fe_max_coeffs.append(effective_fe * 0.01)    # positive for upper bound
 
-    A_ub = np.array([slag_coeffs, fe_coeffs])
-    b_ub = np.array([cfg.target_slag_qty, -cfg.min_fe_production_mt])
+    A_ub = np.array([slag_coeffs, fe_min_coeffs, fe_max_coeffs])
+    b_ub = np.array([cfg.target_slag_qty, -cfg.min_fe_production_mt, cfg.max_fe_production_mt])
 
     # ── Bounds per ore ────────────────────────────────────────────────────────
     # Sinter: hard min/max % from config (sinter_min_pct / sinter_max_pct)
@@ -78,24 +80,24 @@ def run_optimizer(
         bounds.append((lo, hi))
 
     # ── Solve ─────────────────────────────────────────────────────────────────
-    result = linprog(c, A_eq=A_eq, b_eq=b_eq, A_ub=A_ub, b_ub=b_ub,
+    result = linprog(c, A_ub=A_ub, b_ub=b_ub,
                      bounds=bounds, method="highs")
 
-    fe_relaxed = False
-    if not result.success:
-        # Retry without Fe constraint — selected ore combo may not reach fe_min_pct
-        # Accept whatever Fe% the blend achieves naturally
-        result = linprog(c, A_eq=A_eq, b_eq=b_eq,
-                         A_ub=A_ub[:1], b_ub=b_ub[:1],   # slag constraint only
-                         bounds=bounds, method="highs")
-        if not result.success:
-            return None
-        fe_relaxed = True
+    # fe_relaxed = False
+    # if not result.success:
+    #     # Retry without Fe constraint — selected ore combo may not reach fe_min_pct
+    #     # Accept whatever Fe% the blend achieves naturally
+    #     result = linprog(c, A_eq=A_eq, b_eq=b_eq,
+    #                      A_ub=A_ub[:1], b_ub=b_ub[:1],   # slag constraint only
+    #                      bounds=bounds, method="highs")
+    #     if not result.success:
+    #         return None
+    #     fe_relaxed = True
 
     quantities = {}
     for i, ore in enumerate(selected_ores):
         quantities[ore] = round(result.x[i], 1)
 
     blend = calculate_blend(quantities, prices, chemistry_df)
-    blend.fe_constraint_relaxed = fe_relaxed
+    # blend.fe_constraint_relaxed = fe_relaxed
     return blend
