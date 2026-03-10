@@ -63,6 +63,7 @@ def run_optimizer(
 
     A_ub = np.array([slag_coeffs, fe_min_coeffs, fe_max_coeffs])
     b_ub = np.array([cfg.target_slag_qty, -cfg.min_fe_production_mt, cfg.max_fe_production_mt])
+    
 
     # ── Bounds per ore ────────────────────────────────────────────────────────
     # Sinter: hard min/max % from config (sinter_min_pct / sinter_max_pct)

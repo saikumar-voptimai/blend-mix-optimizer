@@ -161,6 +161,7 @@ ore_prices:
 min_fe_production_mt: 2100.0
 max_fe_production_mt: 2300.0
 
+
 # ── Fe Loss Constant ──────────────────────────────────────────────
 # Fixed Fe% points subtracted from gross blend Fe% to get net Fe%
 # arriving in hot metal after losses via flue dust, GCP dust, slag FeO

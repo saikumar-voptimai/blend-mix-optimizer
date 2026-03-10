@@ -64,5 +64,6 @@ def load_config() -> Config:
     )
 
 
+
 # Single shared instance — imported by all modules
 cfg = load_config()
