@@ -286,3 +286,4 @@ def render_fe_contribution_waterfall(optimal: BlendResult, chemistry_df):
     )
     fig.update_layout(**layout)
     st.plotly_chart(fig, use_container_width=True)
+    

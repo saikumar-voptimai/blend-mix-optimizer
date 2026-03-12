@@ -12,6 +12,7 @@ SEARCH_RADIUS    = 0.30
 MIN_QTY          = 1.0
 
 
+
 def run_grid_search(
     selected_ores: list,
     optimal_quantities: dict,

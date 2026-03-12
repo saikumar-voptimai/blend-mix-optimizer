@@ -77,6 +77,7 @@ def run_optimizer(
             hi = min(max_pct_hi, avail_hi)
         bounds.append((lo, hi))
 
+
     # ── Solve ─────────────────────────────────────────────────────────────────
     result = linprog(c, A_eq=A_eq, b_eq=b_eq, A_ub=A_ub, b_ub=b_ub,
                      bounds=bounds, method="highs")

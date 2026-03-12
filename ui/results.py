@@ -147,3 +147,4 @@ def render_top_blends_table(grid_df: pd.DataFrame, fuel_input: FuelInput = None)
             show_df[col] = show_df[col].apply(lambda x: f"{x:.1f}")
 
     st.dataframe(show_df, use_container_width=True)
+    

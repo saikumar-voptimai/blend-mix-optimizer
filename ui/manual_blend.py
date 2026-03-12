@@ -214,6 +214,6 @@ def render_manual_blend_tab(
             }, na_rep="")
             .apply(highlight_cost_delta, subset=["Cost Δ (₹)"])
             .apply(highlight_cost_delta, subset=["Δ MT"]),
-        use_container_width=True,
+        width="Stretch",
         hide_index=True,
     )

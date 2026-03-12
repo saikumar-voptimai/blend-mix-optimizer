@@ -70,6 +70,7 @@ def calculate_blend(
     slag_pct = sio2 - (cfg.si_in_slag * SIO2_FROM_SI_FACTOR) + al2o3 + cao + mgo + mno
     slag_mt  = slag_pct / 100.0 * total_qty
 
+
     total_cost  = sum(quantities[ore] * prices.get(ore, 0) for ore in quantities)
     cost_per_mt = total_cost / total_qty if total_qty > 0 else 0
 

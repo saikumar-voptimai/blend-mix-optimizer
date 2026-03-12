@@ -35,6 +35,7 @@ def load_ore_chemistry() -> pd.DataFrame:
         sheet_name="Ore Chemical Compositions",
         header=2,       # Row 3 is the header
     )
+    
 
     # Drop empty rows
     df = df.dropna(subset=["Ore / Material"])

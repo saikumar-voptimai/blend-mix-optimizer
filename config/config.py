@@ -36,6 +36,7 @@ class Config:
     nut_coke_defaults:     dict
     pci_defaults:          dict
 
+
 @st.cache_resource
 def load_config() -> Config:
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
