@@ -245,7 +245,11 @@ def render_radar_chart(grid_df: pd.DataFrame, selected_ranks: list[int], optimal
         height=480,
         margin=dict(l=60, r=60, t=60, b=40),
     )
-    st.plotly_chart(fig, ner_width=True)
+    st.plotly_chart(
+    fig,
+    use_container_width=True,
+    config={"displayModeBar": False}
+   )
 
 
 def render_fe_contribution_waterfall(optimal: BlendResult, chemistry_df):

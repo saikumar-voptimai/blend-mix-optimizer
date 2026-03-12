@@ -51,7 +51,7 @@ def load_ore_chemistry() -> pd.DataFrame:
     df = df[ore_mask].copy()
 
     # Replace '-' strings with NaN then 0
-    df = df.replace("-", np.nan)
+    df = df.replace("-", np.nan).infer_objects(copy=False)
 
     # Set ore name as index
     df = df.rename(columns={"Ore / Material": "ore_name"})
