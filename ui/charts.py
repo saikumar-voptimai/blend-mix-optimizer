@@ -107,7 +107,7 @@ def render_pareto_scatter(grid_df: pd.DataFrame, optimal: BlendResult):
         height=450,
     )
     fig.update_layout(**layout)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def render_composition_bar(grid_df: pd.DataFrame, selected_ores: list[str], top_n: int = 10):
@@ -153,7 +153,7 @@ def render_composition_bar(grid_df: pd.DataFrame, selected_ores: list[str], top_
         height=max(350, top_n * 35),
     )
     fig.update_layout(**layout)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def render_radar_chart(grid_df: pd.DataFrame, selected_ranks: list[int], optimal: BlendResult):
@@ -245,7 +245,7 @@ def render_radar_chart(grid_df: pd.DataFrame, selected_ranks: list[int], optimal
         height=480,
         margin=dict(l=60, r=60, t=60, b=40),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, ner_width=True)
 
 
 def render_fe_contribution_waterfall(optimal: BlendResult, chemistry_df):
@@ -285,5 +285,4 @@ def render_fe_contribution_waterfall(optimal: BlendResult, chemistry_df):
         showlegend=False,
     )
     fig.update_layout(**layout)
-    st.plotly_chart(fig, use_container_width=True)
-    
+    st.plotly_chart(fig, width="stretch")

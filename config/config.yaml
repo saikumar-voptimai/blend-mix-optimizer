@@ -1,131 +1,160 @@
-# ═══════════════════════════════════════════════════════════════════
-# BF-02 Ore Blend Optimizer — Configuration File
-# Edit values here. Changes reflect automatically on next app restart.
-# ═══════════════════════════════════════════════════════════════════
+# ------------------------------------------------
+# BF-02 Ore Blend Optimizer Configuration
+# ------------------------------------------------
 
-# ── Default target blend quantity (MT) ────────────────────────────
-default_target_qty: 3800.0
+default_target_qty: 3800
 
-# ── Fallback price if ore not listed below (₹/MT) ─────────────────
-fallback_price: 5000.0
+fallback_price: 5000
+fallback_max_pct: 100
+fallback_min_pct: 0
 
-# ── Default ore prices (₹/MT) ─────────────────────────────────────
-ore_prices:
-  NMDC ROM:               8739.0
-  NMDC Donimalai:         5684.0
-  Bacheli Fines O/S:     10000.0
-  Lloyds Pellet (Sarda):  9650.0
-  Lloyds Fines O/S:       6162.0
-  Lloyds CLO:             8051.0
-  JRS Ventures CLO:       6831.0
-  Jayaswal Neco:          6650.0
-  Gomti CLO:              5349.0
-  Titani Ferrous CLO:     4939.0
-  Geomin CLO:             3827.0
-  Acore Industries:       8473.0
-  Sinter (SP-02):         5282.0
 
-# ── Fe Production constraint ─────────────────────────────────────
-# Minimum Fe units produced by the blend (MT)
-# Formula: Σ(ore_qty_i × effective_fe_i / 100) ≥ min_fe_production_mt
-# Effective Fe = Fe(T)% + FeO%×0.7773 (FeO counted separately for Sinter)
-# Example: 4 ores at 3800 MT target → Fe prod = sum of each ore's Fe contribution
-min_fe_production_mt: 2300.0
+# ------------------------------------------------
+# Fe production constraints
+# ------------------------------------------------
 
-# ── Fe Loss Constant ──────────────────────────────────────────────
-# Fixed Fe% points subtracted from gross blend Fe% to get net Fe%
-# arriving in hot metal after losses via flue dust, GCP dust, slag FeO
-# Source: BF-02 Fe Balance Report Feb-26 actuals (avg of 7 full days)
-#   Dust Fe loss : ~19-27 MT/day  (~96% of total loss)
-#   Slag FeO Fe  : ~1.8-2.5 MT/day (~4% of total loss)
-#   Combined     : ~0.989% of ore Fe input = 0.56 percentage points
-# Formula: net_fe_pct = gross_fe_pct - fe_loss_constant
-# Update monthly using fresh Fe Balance Report data
+min_fe_production_mt: 2350
+max_fe_production_mt: 2500
+
+
+# ------------------------------------------------
+# Fe loss constant (BF losses)
+# ------------------------------------------------
+
 fe_loss_constant: 0.56
 
-# ── Sinter constraints (fraction of total blend) ───────────────────
-sinter_min_pct: 0.50      # Sinter must be at least 50% of blend
-sinter_max_pct: 0.65      # Sinter cannot exceed 65% of blend
 
+# ------------------------------------------------
+# Slag chemistry correction
+# ------------------------------------------------
 
-# ── Slag chemistry correction factors ─────────────────────────────
-# feo_in_slag:  FeO% that remains in slag (not reduced to Fe metal)
-#               Subtracts from effective Fe calculation
-# si_in_slag:   Si% that remains unreduced in slag as SiO2
-#               Its SiO2 equivalent (si × 60/28) is subtracted from slag%
 feo_in_slag: 0.4
-si_in_slag:  0.5
+si_in_slag: 0.5
 
-# ── Slag constraint ───────────────────────────────────────────────
-# Maximum allowable slag-forming material in the blend (MT)
-# Slag = Σ(x_i × (SiO2_i + Al2O3_i + CaO_i + MgO_i + MnO_i) / 100)
-target_slag_qty: 700.0
 
-# ── Ore maximum % constraints (% of total blend) ──────────────────
-# Cap how much any single ore can contribute to the blend
-# Set to 100 to apply no cap for an ore
-# fallback_max_pct applies if ore is not listed here
-fallback_max_pct: 100.0
+# ------------------------------------------------
+# Slag constraint
+# ------------------------------------------------
+
+target_slag_qty: 700
+
+
+# ------------------------------------------------
+# Ore prices
+# ------------------------------------------------
+
+ore_prices:
+
+  NMDC ROM: 8739
+  NMDC Donimalai: 5684
+  Bacheli Fines O/S: 10000
+  Lloyds Pellet (Sarda): 9650
+  Lloyds Fines O/S: 6162
+  Lloyds CLO: 8051
+  JRS Ventures CLO: 6831
+  Jayaswal Neco: 6650
+  Gomti CLO: 5349
+  Titani Ferrous CLO: 4939
+  Geomin CLO: 3827
+  Acore Industries: 8473
+  Sinter (SP-02): 5282
+
+
+# ------------------------------------------------
+# Ore percentage limits
+# ------------------------------------------------
 
 ore_max_pct:
-  NMDC ROM:               30.0
-  NMDC Donimalai:         15.0
-  Bacheli Fines O/S:      10.0
-  Lloyds Pellet (Sarda):  10.0
-  Lloyds Fines O/S:       10.0
-  Lloyds CLO:             30.0
-  JRS Ventures CLO:       20.0
-  Jayaswal Neco:          20.0
-  Gomti CLO:              30.0
-  Titani Ferrous CLO:     3.0
-  Geomin CLO:             20.0
-  Acore Industries:       3.0
-  Sinter (SP-02):         65.0  # Sinter capped at 65% of blend
 
-# ── Coke / Nut Coke / PCI Ash Analysis (% of ash) ─────────────────
-# Source: BF-02 lab analysis (fuel.xlsx)
-# Slag from each = qty_MT × (ash%/100) × (SiO2+Al2O3+CaO+MgO)_ash/100
-# Update these when lab reports new averages
+  NMDC ROM: 30
+  NMDC Donimalai: 15
+  Bacheli Fines O/S: 10
+  Lloyds Pellet (Sarda): 10
+  Lloyds Fines O/S: 10
+  Lloyds CLO: 30
+  JRS Ventures CLO: 20
+  Jayaswal Neco: 20
+  Gomti CLO: 30
+  Titani Ferrous CLO: 3
+  Geomin CLO: 20
+  Acore Industries: 3
+  Sinter (SP-02): 65
+
+
+ore_min_pct:
+
+  NMDC ROM: 0
+  NMDC Donimalai: 0
+  Bacheli Fines O/S: 0
+  Lloyds Pellet (Sarda): 0
+  Lloyds Fines O/S: 0
+  Lloyds CLO: 0
+  JRS Ventures CLO: 0
+  Jayaswal Neco: 0
+  Gomti CLO: 0
+  Titani Ferrous CLO: 0
+  Geomin CLO: 0
+  Acore Industries: 0
+  Sinter (SP-02): 50
+
+
+# ------------------------------------------------
+# Fuel ash chemistry
+# ------------------------------------------------
 
 coke_ash_analysis:
-  SiO2:    56.51
-  Al2O3:   27.64
-  CaO:      2.65
-  MgO:      1.09
-  Fe2O3:    6.34
-  S:        0.74
-  P:        0.041
-  TiO2:     1.46
+
+  SiO2: 56.51
+  Al2O3: 27.64
+  CaO: 2.65
+  MgO: 1.09
+  Fe2O3: 6.34
+  S: 0.74
+  P: 0.041
+  TiO2: 1.46
+
 
 nut_coke_ash_analysis:
-  SiO2:    55.76
-  Al2O3:   26.96
-  CaO:      3.42
-  MgO:      1.29
-  Fe2O3:    6.86
-  S:        0.77
-  P:        0.039
-  TiO2:     1.491
+
+  SiO2: 55.76
+  Al2O3: 26.96
+  CaO: 3.42
+  MgO: 1.29
+  Fe2O3: 6.86
+  S: 0.77
+  P: 0.039
+  TiO2: 1.491
+
 
 pci_ash_analysis:
-  SiO2:    51.72
-  Al2O3:   24.55
-  CaO:      5.79
-  MgO:      1.93
-  Fe2O3:    6.62
-  S:        0.41
-  P:        0.054
-  TiO2:     0.973
 
-# ── Default quantities and ash% for sidebar ───────────────────────
+  SiO2: 51.72
+  Al2O3: 24.55
+  CaO: 5.79
+  MgO: 1.93
+  Fe2O3: 6.62
+  S: 0.41
+  P: 0.054
+  TiO2: 0.973
+
+
+# ------------------------------------------------
+# Default fuel inputs
+# ------------------------------------------------
+
 coke_defaults:
-  qty_mt:   120.0
-  ash_pct:  11.20
+
+  qty_mt: 120
+  ash_pct: 11.2
+
 
 nut_coke_defaults:
-  qty_mt:   120.0
-  ash_pct:  11.20
+
+  qty_mt: 120
+  ash_pct: 11.2
+
 
 pci_defaults:
-  qty_mt:   450.0
-  ash_pct:  10.0
+
+  qty_mt: 450
+  ash_pct: 10

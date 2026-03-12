@@ -4,7 +4,7 @@ Blend Calculator — Computes chemistry, slag and cost for any blend combination
 
 import pandas as pd
 from dataclasses import dataclass
-from config.config import cfg, field
+from dataclasses import dataclass, field
 from config.config import cfg
 
 # Fe/FeO molecular weight ratio: 55.845 / 71.844

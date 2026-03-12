@@ -168,7 +168,7 @@ def render_sidebar(chemistry_df: pd.DataFrame) -> dict | None:
         # ── Submit Button ──────────────────────────────────────────────────────
         submitted = st.form_submit_button(
             "Submit",
-            use_container_width=True,
+            width="stretch",
         )
 
     # ── Validate and save on submit ───────────────────────────────────────────
@@ -218,7 +218,7 @@ def render_sidebar(chemistry_df: pd.DataFrame) -> dict | None:
         st.sidebar.info("Complete all steps and click Submit first.")
         return None
 
-    if st.sidebar.button("Run Optimizer", type="primary", use_container_width=True):
+    if st.sidebar.button("Run Optimizer", type="primary", width="stretch"):
         st.session_state[READY_KEY] = True
 
     if not st.session_state.get(READY_KEY, False):

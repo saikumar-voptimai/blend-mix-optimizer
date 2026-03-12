@@ -1,38 +1,39 @@
-"""
-Ore Blend Mix Optimization System
-BF-02 Blast Furnace — Bunker Ore Blend Optimizer
-"""
-
 import streamlit as st
-import pandas as pd
-import numpy as np
-from scipy.optimize import linprog
 
-st.set_page_config(
-    page_title="Ore Blend Optimizer — BF-02",
-    page_icon="⚙️",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
-
-
+from config.config import cfg
 from data.ore_chemistry import load_ore_chemistry
+
 from engine.optimizer import run_optimizer
 from engine.grid_search import run_grid_search, estimate_combination_count
-from engine.blend_calculator import FE_FROM_FEO_FACTOR
-from ui.sidebar import render_sidebar
+from engine.fuel_calculator import FuelInput
+
 from ui.results import render_best_blend_card, render_top_blends_table
-from ui.manual_blend import render_manual_blend_tab
 from ui.charts import (
     render_pareto_scatter,
     render_composition_bar,
     render_radar_chart,
     render_fe_contribution_waterfall,
 )
-from config.config import cfg
+from ui.manual_blend import render_manual_blend_tab
 
 
-# ── Load chemistry data ───────────────────────────────────────────────────────
+# -------------------------------------------------------
+# PAGE CONFIG
+# -------------------------------------------------------
+
+st.set_page_config(
+    page_title="BF-02 Ore Blend Optimizer",
+    layout="wide",
+)
+
+st.title("⚙️ Ore Blend Optimizer — BF-02")
+st.caption("Blast Furnace Burden Optimization System")
+
+
+# -------------------------------------------------------
+# LOAD DATA
+# -------------------------------------------------------
+
 @st.cache_data
 def load_data():
     return load_ore_chemistry()
@@ -40,232 +41,257 @@ def load_data():
 chemistry_df = load_data()
 
 
-# ── Header ────────────────────────────────────────────────────────────────────
-st.title("⚙️ Ore Blend Optimizer — BF-02")
-st.caption("BF-02 Bunker · Blast Furnace Blend Optimization System · FY 2025–26 Average Chemistry")
-st.divider()
+# -------------------------------------------------------
+# INPUT UI
+# -------------------------------------------------------
 
+with st.expander("⚙️ Blend Configuration", expanded=True):
+    st.subheader("Step 1 — Select Ores")
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-operator_inputs = render_sidebar(chemistry_df)
+    selected_ores = []
+    cols = st.columns(4)
+    for i, ore in enumerate(chemistry_df.index):
+        if cols[i % 4].checkbox(ore, key=f"ore_{ore}"):
+            selected_ores.append(ore)
 
+    if len(selected_ores) < 2:
+        st.warning("Select at least 2 ores to continue.")
+        st.stop()
 
-# ── Tabs ──────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📋 Ore Catalogue",
-    "🌟 Optimal Blend",
-    "📊 Comparison Charts",
-    "🎯 Blend Comparison",
-    "🔧 Manual Blend",
-])
+    st.divider()
 
+    st.subheader("Step 2 — Available Quantities (MT)")
+    max_quantities = {}
+    cols = st.columns(4)
+    for i, ore in enumerate(selected_ores):
+        max_quantities[ore] = cols[i % 4].number_input(
+            f"{ore}",
+            min_value=0.0,
+            value=float(cfg.default_target_qty),
+            step=10.0,
+            key=f"qty_{ore}",
+        )
 
-# ── Tab 1: Ore Catalogue (always visible) ────────────────────────────────────
-with tab1:
-    st.subheader("Ore Chemistry Reference — BF-02 Bunker (2025-26 Averages)")
-    display_cols = ["%Fe(T)", "%FeO", "%SiO2", "%Al2O3", "%CaO", "%MgO", "%TiO2", "%P", "%MnO", "%LOI", "Slag%"]
-    display_cols = [c for c in display_cols if c in chemistry_df.columns]
-    st.dataframe(
-        chemistry_df[display_cols].style.format("{:.3f}"),
-        use_container_width=True,
-        height=480,
+    st.divider()
+
+    st.subheader("Step 3 — Ore Prices (₹/MT)")
+    prices = {}
+    cols = st.columns(4)
+    for i, ore in enumerate(selected_ores):
+        prices[ore] = cols[i % 4].number_input(
+            f"{ore} price",
+            min_value=0.0,
+            value=float(cfg.ore_prices.get(ore, cfg.fallback_price)),
+            step=100.0,
+            key=f"price_{ore}",
+        )
+
+    st.divider()
+
+    st.subheader("Step 4 — Fuel Inputs")
+    c1, c2, c3 = st.columns(3)
+
+    coke_qty = c1.number_input(
+        "Coke Qty (MT)",
+        min_value=0.0,
+        value=float(cfg.coke_defaults["qty_mt"]),
+        step=10.0,
+        key="coke_qty",
     )
-    st.caption(
-        "Slag% = SiO2% + Al2O3% + CaO% + MgO% + MnO%  |  "
-        "%FeO shown for Sinter only — informational, not added to Slag%"
+    coke_ash = c1.number_input(
+        "Coke Ash %",
+        min_value=0.0,
+        max_value=100.0,
+        value=float(cfg.coke_defaults["ash_pct"]),
+        step=0.1,
+        key="coke_ash",
     )
-    with st.expander("ℹ️ Special Ore Notes"):
-        st.markdown("""
-        - **Acore Industries** — Mn ore (MnO ~22%). Very low Fe (~27%). Use only if Mn addition is intentional.
-        - **Titani Ferrous CLO** — TiO2 ~12.2%. High titanium loads slag and can damage furnace lining.
-        - **NMDC Donimalai** — SiO2 ~14.4%. Heavy slag burden if used in large quantities.
-        - **Sinter (SP-02)** — Self-fluxing. High CaO (~10.6%) reduces external limestone need. FeO ~9.2% indicates partial oxidation state — Fe(T)% already includes all iron forms.
-        """)
+
+    nut_coke_qty = c2.number_input(
+        "Nut Coke Qty (MT)",
+        min_value=0.0,
+        value=float(cfg.nut_coke_defaults["qty_mt"]),
+        step=10.0,
+        key="nut_coke_qty",
+    )
+    nut_coke_ash = c2.number_input(
+        "Nut Coke Ash %",
+        min_value=0.0,
+        max_value=100.0,
+        value=float(cfg.nut_coke_defaults["ash_pct"]),
+        step=0.1,
+        key="nut_coke_ash",
+    )
+
+    pci_qty = c3.number_input(
+        "PCI Qty (MT)",
+        min_value=0.0,
+        value=float(cfg.pci_defaults["qty_mt"]),
+        step=10.0,
+        key="pci_qty",
+    )
+    pci_ash = c3.number_input(
+        "PCI Ash %",
+        min_value=0.0,
+        max_value=100.0,
+        value=float(cfg.pci_defaults["ash_pct"]),
+        step=0.1,
+        key="pci_ash",
+    )
+
+    fuel_input = FuelInput(
+        coke_qty_mt=coke_qty,
+        coke_ash_pct=coke_ash,
+        nut_coke_qty_mt=nut_coke_qty,
+        nut_coke_ash_pct=nut_coke_ash,
+        pci_qty_mt=pci_qty,
+        pci_ash_pct=pci_ash,
+    )
+
+    st.divider()
+
+    st.subheader("Step 5 — Grid Search Step")
+    step_size = st.select_slider(
+        "Grid search step size (MT)",
+        options=[5, 10, 25, 50, 100],
+        value=10,
+        key="step_size",
+    )
+
+    st.divider()
+
+    st.subheader("Step 6 — Fe Production Range")
+    col1, col2 = st.columns(2)
+
+    min_fe_production_mt = col1.number_input(
+        "Minimum Fe Production (MT)",
+        min_value=0.0,
+        value=float(cfg.min_fe_production_mt),
+        step=10.0,
+        key="min_fe",
+    )
+    max_fe_production_mt = col2.number_input(
+        "Maximum Fe Production (MT)",
+        min_value=0.0,
+        value=float(cfg.max_fe_production_mt),
+        step=10.0,
+        key="max_fe",
+    )
+
+    run_btn = st.button("Run Optimizer", type="primary")
 
 
-# ── No inputs yet — show placeholders ────────────────────────────────────────
-if operator_inputs is None:
-    with tab2:
-        st.info("← Configure blend in sidebar: select ores, enter quantities & prices, then click Run Optimizer.")
-    with tab3:
-        st.info("Run the optimizer first to see charts.")
-    with tab4:
-        st.info("Run the optimizer first to compare blends.")
-    with tab5:
-        st.info("Run the optimizer first to enable manual blend comparison.")
-    st.stop()
+# -------------------------------------------------------
+# RUN OPTIMIZER
+# -------------------------------------------------------
 
-
-# ── Unpack operator inputs ────────────────────────────────────────────────────
-selected_ores  = operator_inputs["selected_ores"]
-max_quantities = operator_inputs["max_quantities"]
-prices         = operator_inputs["prices"]
-target_qty     = operator_inputs["target_qty"]
-step_size      = operator_inputs["step_size"]
-fuel_input     = operator_inputs.get("fuel_input", None)
-
-
-# ── Run optimizer — cached in session state, only reruns when inputs change ───
-_opt_cache_key = f"opt_{selected_ores}_{target_qty}_{list(max_quantities.values())}_{list(prices.values())}"
-
-if st.session_state.get("_opt_cache_id") != _opt_cache_key:
-    with st.spinner("Running cost optimizer..."):
+if run_btn:
+    with st.spinner("Running optimizer..."):
         optimal_result = run_optimizer(
             selected_ores=selected_ores,
             max_quantities=max_quantities,
             prices=prices,
-            target_qty=target_qty,
             chemistry_df=chemistry_df,
+            min_fe_production_mt=min_fe_production_mt,
+            max_fe_production_mt=max_fe_production_mt,
         )
-    st.session_state["_opt_cache_id"] = _opt_cache_key
-    st.session_state["_opt_result"]   = optimal_result
-else:
-    optimal_result = st.session_state["_opt_result"]
 
+    if optimal_result is None:
+        st.session_state.pop("optimal_result", None)
+        st.session_state.pop("grid_df", None)
+        st.error(
+            "Optimizer could not find a feasible blend.\n\n"
+            "Possible reasons:\n"
+            "- Fe production limits are too strict\n"
+            "- Slag limit is too strict\n"
+            "- Ore min/max percentage constraints are too restrictive\n"
+            "- Selected ore availability is too low"
+        )
+        st.stop()
 
-# ── Optimizer failed — diagnose and stop ─────────────────────────────────────
-if optimal_result is None:
-    sinter_ores = [o for o in selected_ores if "sinter" in o.lower()]
-
-    n = len(selected_ores)
-    slag_c, fe_c, bounds, bound_info = [], [], [], []
-    for ore in selected_ores:
-        slag = sum(float(chemistry_df.loc[ore, col])
-                   for col in ["%SiO2", "%Al2O3", "%CaO", "%MgO", "%MnO"]
-                   if col in chemistry_df.columns)
-        slag_c.append(slag * 0.01)
-        fe_t = float(chemistry_df.loc[ore, "%Fe(T)"])
-        feo  = float(chemistry_df.loc[ore, "%FeO"])
-        fe_c.append(-(fe_t + feo * FE_FROM_FEO_FACTOR) * 0.01)
-        if "sinter" in ore.lower():
-            lo = cfg.sinter_min_pct * target_qty
-            hi = min(cfg.sinter_max_pct * target_qty, max_quantities.get(ore, target_qty))
-        else:
-            mp = cfg.ore_max_pct.get(ore, cfg.fallback_max_pct)
-            hi = min(mp / 100.0 * target_qty, max_quantities.get(ore, target_qty))
-            lo = 0.0
-        bounds.append((lo, hi))
-        bound_info.append(f"{ore}: lo={lo:.0f} hi={hi:.0f}")
-
-    c    = np.ones(n)
-    A_eq = np.ones((1, n)); b_eq = np.array([target_qty])
-    A_ub = np.array([slag_c, fe_c])
-    b_ub = np.array([cfg.target_slag_qty, -cfg.min_fe_production_mt])
-
-    r_none = linprog(c, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method="highs")
-    r_slag = linprog(c, A_eq=A_eq, b_eq=b_eq, A_ub=A_ub[:1], b_ub=b_ub[:1], bounds=bounds, method="highs")
-    r_fe   = linprog(c, A_eq=A_eq, b_eq=b_eq, A_ub=A_ub[1:], b_ub=b_ub[1:], bounds=bounds, method="highs")
-
-    lines = ["**Optimizer could not find a feasible solution.**", ""]
-
-    if not r_none.success:
-        lo_sum = sum(b[0] for b in bounds)
-        hi_sum = sum(b[1] for b in bounds)
-        lines.append(f"- **Bounds infeasible:** sum lo={lo_sum:.0f} MT, sum hi={hi_sum:.0f} MT, target={target_qty:.0f} MT.")
-        lines.append(f"  The selected ore caps (`ore_max_pct`) don't allow reaching the target quantity.")
-        if sinter_ores:
-            gap = target_qty - min(cfg.sinter_max_pct * target_qty, max_quantities.get(sinter_ores[0], target_qty))
-            lines.append(f"  Non-sinter ores must cover **{gap:.0f} MT** but are capped at less.")
-    elif not r_slag.success:
-        nat_slag = sum(r_none.x[i] * slag_c[i] for i in range(n))
-        lines.append(f"- **Slag constraint too tight:** minimum achievable slag = **{nat_slag:.0f} MT** but `target_slag_qty = {cfg.target_slag_qty:.0f} MT`.")
-        lines.append(f"  Increase `target_slag_qty` in config.yaml to at least **{int(nat_slag) + 50} MT**.")
-    elif not r_fe.success:
-        nat_fe = -sum(r_none.x[i] * fe_c[i] for i in range(n))
-        lines.append(f"- **Fe constraint too high:** max possible Fe production = **{nat_fe:.0f} MT** but `min_fe_production_mt = {cfg.min_fe_production_mt:.0f} MT`.")
-        lines.append(f"  Reduce `min_fe_production_mt` in config.yaml to at most **{int(nat_fe) - 50} MT**, or add higher-Fe ores.")
-    else:
-        nat_slag = sum(r_none.x[i] * slag_c[i] for i in range(n))
-        nat_fe   = -sum(r_none.x[i] * fe_c[i] for i in range(n))
-        lines.append(f"- **Slag + Fe constraints conflict** when applied together.")
-        lines.append(f"  Natural slag={nat_slag:.0f} MT (limit={cfg.target_slag_qty:.0f}), Natural Fe={nat_fe:.0f} MT (min={cfg.min_fe_production_mt:.0f} MT).")
-
-    lines += ["", "**Ore bounds used:**"] + [f"- {b}" for b in bound_info]
-
-    with tab2:
-        st.error("\n".join(lines))
-    st.stop()
-
-
-# ── Grid search — cached in session state, only reruns when inputs change ────
-_grid_cache_key = f"grid_df_{selected_ores}_{target_qty}_{step_size}_{list(max_quantities.values())}"
-
-if st.session_state.get("_grid_cache_id") != _grid_cache_key:
     est_count = estimate_combination_count(
-        selected_ores, optimal_result.quantities, max_quantities, target_qty, step_size
+        selected_ores=selected_ores,
+        optimal_quantities=optimal_result.quantities,
+        max_quantities=max_quantities,
+        step_size=step_size,
     )
-    with st.spinner(f"Running grid search (~{est_count} combinations)..."):
+
+    with st.spinner(f"Running grid search (~{est_count:,} combinations)..."):
         grid_df = run_grid_search(
             selected_ores=selected_ores,
             optimal_quantities=optimal_result.quantities,
             max_quantities=max_quantities,
             prices=prices,
-            target_qty=target_qty,
             step_size=step_size,
             chemistry_df=chemistry_df,
+            min_fe_production_mt=min_fe_production_mt,
+            max_fe_production_mt=max_fe_production_mt,
         )
-    st.session_state["_grid_cache_id"] = _grid_cache_key
-    st.session_state["_grid_df"]       = grid_df
-else:
-    grid_df = st.session_state["_grid_df"]
+
+    st.session_state["optimal_result"] = optimal_result
+    st.session_state["grid_df"] = grid_df
+    st.session_state["selected_ores"] = selected_ores
+    st.session_state["prices"] = prices
+    st.session_state["fuel_input"] = fuel_input
+    st.session_state["min_fe_production_mt"] = min_fe_production_mt
+    st.session_state["max_fe_production_mt"] = max_fe_production_mt
 
 
-# ── Tab 2: Optimal Blend ──────────────────────────────────────────────────────
+# -------------------------------------------------------
+# REQUIRE OPTIMIZER RUN
+# -------------------------------------------------------
+
+if "optimal_result" not in st.session_state:
+    st.info("Configure inputs above and click **Run Optimizer**.")
+    st.stop()
+
+optimal_result = st.session_state["optimal_result"]
+grid_df = st.session_state["grid_df"]
+selected_ores = st.session_state["selected_ores"]
+prices = st.session_state["prices"]
+fuel_input = st.session_state["fuel_input"]
+min_fe_production_mt = st.session_state["min_fe_production_mt"]
+
+
+# -------------------------------------------------------
+# TABS
+# -------------------------------------------------------
+
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "📋 Ore Catalogue",
+    "🏆 Optimal Blend",
+    "📊 Comparison Charts",
+    "📑 Blend Comparison",
+    "🔧 Manual Blend",
+])
+
+
+with tab1:
+    st.subheader("Ore Chemistry Catalogue")
+    st.dataframe(chemistry_df, width="stretch")
+
+
 with tab2:
-    render_best_blend_card(optimal_result, fuel_input)
-    st.divider()
+    render_best_blend_card(optimal_result, fuel_input, min_fe_production_mt=min_fe_production_mt)
+
+
+with tab3:
+    if not grid_df.empty:
+        render_pareto_scatter(grid_df, optimal_result)
+        st.divider()
+        render_composition_bar(grid_df, selected_ores)
+        st.divider()
+        render_radar_chart(grid_df, [2, 3, 4], optimal_result)
+        st.divider()
+        render_fe_contribution_waterfall(optimal_result, chemistry_df)
+    else:
+        st.info("No grid search results to plot.")
+
+
+with tab4:
     render_top_blends_table(grid_df, fuel_input)
 
 
-# ── Tab 3: Comparison Charts ──────────────────────────────────────────────────
-with tab3:
-    if not grid_df.empty:
-        st.subheader("Pareto Front — All Valid Blends")
-        render_pareto_scatter(grid_df, optimal_result)
-        st.divider()
-        st.subheader("Fe% Contribution per Ore")
-        render_fe_contribution_waterfall(optimal_result, chemistry_df)
-        st.divider()
-        st.subheader("Blend Composition — Top 10 Blends")
-        render_composition_bar(grid_df, selected_ores, top_n=10)
-    else:
-        st.info("No grid search results. Try a smaller step size.")
-
-
-# ── Tab 4: Blend Comparison ───────────────────────────────────────────────────
-with tab4:
-    if not grid_df.empty:
-        max_rank = min(20, len(grid_df))
-        selected_ranks = st.multiselect(
-            "Select ranks to compare (2–5 blends)",
-            options=list(range(1, max_rank + 1)),
-            default=[1, 2, 3] if max_rank >= 3 else list(range(1, max_rank + 1)),
-            max_selections=5,
-        )
-        if selected_ranks:
-            render_radar_chart(grid_df, selected_ranks, optimal_result)
-            st.divider()
-            st.subheader("Side-by-Side Chemistry Comparison")
-            rows = [{"Blend": "★ Optimal", "Fe%": optimal_result.fe_pct,
-                     "SiO2%": optimal_result.sio2_pct, "Al2O3%": optimal_result.al2o3_pct,
-                     "CaO%": optimal_result.cao_pct, "MgO%": optimal_result.mgo_pct,
-                     "TiO2%": optimal_result.tio2_pct, "Slag%": optimal_result.slag_pct,
-                     "Slag MT": optimal_result.slag_mt, "Cost/MT (₹)": optimal_result.cost_per_mt}]
-            for rank in selected_ranks:
-                if 1 <= rank <= len(grid_df):
-                    row = grid_df.iloc[rank - 1]
-                    rows.append({"Blend": f"Rank {rank}", "Fe%": row["Fe%"],
-                                 "SiO2%": row["SiO2%"], "Al2O3%": row["Al2O3%"],
-                                 "CaO%": row["CaO%"], "MgO%": row["MgO%"],
-                                 "TiO2%": row["TiO2%"], "Slag%": row["Slag%"],
-                                 "Slag MT": row["Slag (MT)"], "Cost/MT (₹)": row["Cost/MT (₹)"]})
-            compare_df = pd.DataFrame(rows).set_index("Blend")
-            st.dataframe(compare_df.style.format("{:.3f}"), use_container_width=True)
-    else:
-        st.info("No results to compare.")
-
-
-# ── Tab 5: Manual Blend ───────────────────────────────────────────────────────
 with tab5:
     render_manual_blend_tab(
         selected_ores=selected_ores,
