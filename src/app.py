@@ -1,13 +1,9 @@
-"""
-Ore Blend Mix Optimization System
-BF-02 Blast Furnace — Bunker Ore Blend Optimizer
-"""
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 from scipy.optimize import linprog
-
+from utils.config import cfg
+from data.influx_loader import InfluxRMClient
 st.set_page_config(
     page_title="Ore Blend Optimizer — BF-02",
     page_icon="⚙️",
@@ -28,16 +24,27 @@ from ui.charts import (
     render_radar_chart,
     render_fe_contribution_waterfall,
 )
-from config.config import cfg
+from utils.config import cfg
 
 
 # ── Load chemistry data ───────────────────────────────────────────────────────
-@st.cache_data
-def load_data():
-    return load_ore_chemistry()
+mode = st.sidebar.selectbox(
+    "Chemistry Source Mode",
+    ["latest", "avg"]
+)
 
-chemistry_df = load_data()
+days = st.sidebar.slider(
+    "History window (days)",
+    1,
+    90,
+    cfg.influxdb.query.default_range_days
+)
 
+@st.cache_data(ttl=300)
+def load_data(days, mode):
+    return load_ore_chemistry(days=days, mode=mode)
+
+chemistry_df = load_data(days, mode)
 
 # ── Header ────────────────────────────────────────────────────────────────────
 st.title("⚙️ Ore Blend Optimizer — BF-02")
@@ -47,6 +54,7 @@ st.divider()
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 operator_inputs = render_sidebar(chemistry_df)
+
 
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -66,8 +74,7 @@ with tab1:
     display_cols = [c for c in display_cols if c in chemistry_df.columns]
     st.dataframe(
         chemistry_df[display_cols].style.format("{:.3f}"),
-        use_container_width=True,
-        height=480,
+        width="stretch",
     )
     st.caption(
         "Slag% = SiO2% + Al2O3% + CaO% + MgO% + MnO%  |  "
@@ -109,6 +116,8 @@ _opt_cache_key = f"opt_{selected_ores}_{target_qty}_{list(max_quantities.values(
 
 if st.session_state.get("_opt_cache_id") != _opt_cache_key:
     with st.spinner("Running cost optimizer..."):
+        # st.subheader("Chemistry Data Used for Optimization")
+        # st.dataframe(chemistry_df)
         optimal_result = run_optimizer(
             selected_ores=selected_ores,
             max_quantities=max_quantities,

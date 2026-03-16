@@ -16,7 +16,7 @@ import numpy as np
 from scipy.optimize import linprog
 import pandas as pd
 from engine.blend_calculator import calculate_blend, BlendResult, FE_FROM_FEO_FACTOR
-from config.config import cfg
+from utils.config import cfg
 
 
 def run_optimizer(

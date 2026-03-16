@@ -11,7 +11,7 @@ Fe per fuel (from Fe2O3 in ash):
 """
 
 from dataclasses import dataclass
-from config.config import cfg
+from utils.config import cfg
 
 # Fe2O3 → Fe conversion: 2 × mol_wt(Fe) / mol_wt(Fe2O3)
 FE_FROM_FE2O3_FACTOR = (2 * 55.845) / 159.69   # = 0.6994

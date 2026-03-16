@@ -12,7 +12,7 @@ Flow:
 import streamlit as st
 import pandas as pd
 from data.ore_chemistry import get_ore_flag
-from config.config import cfg
+from utils.config import cfg
 from engine.fuel_calculator import FuelInput
 
 INPUTS_KEY = "submitted_inputs"
@@ -24,6 +24,7 @@ def render_sidebar(chemistry_df: pd.DataFrame) -> dict | None:
 
     all_ores = chemistry_df.index.tolist()
 
+
     # ── Step 1: Select Ores (outside form) ───────────────────────────────────
     st.sidebar.subheader("Step 1 — Select Ores")
     st.sidebar.caption("Choose ores available in the yard today")
@@ -34,7 +35,6 @@ def render_sidebar(chemistry_df: pd.DataFrame) -> dict | None:
         label = f"{ore}  {flag}" if flag else ore
         if st.sidebar.checkbox(label, value=False, key=f"ore_check_{ore}"):
             selected_ores.append(ore)
-
     if len(selected_ores) < 2:
         st.sidebar.warning("Select at least 2 ores to begin.")
         # Only clear saved state if we KNOW the user deliberately deselected ores
