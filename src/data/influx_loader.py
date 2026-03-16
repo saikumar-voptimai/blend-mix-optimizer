@@ -1,7 +1,12 @@
 from influxdb_client_3 import InfluxDBClient3
 import pandas as pd
 from utils.config import cfg
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
+
+token = os.getenv("INFLUX_TOKEN")
 class InfluxRMClient:
     """
     Production client for InfluxDB Serverless (v3)
@@ -11,7 +16,7 @@ class InfluxRMClient:
 
         self.client = InfluxDBClient3(
             host=cfg.influxdb.url,
-            token=cfg.influxdb.token,
+            token=token,
             org=cfg.influxdb.org,
         )
 
