@@ -14,7 +14,7 @@ CHEMISTRY_FILE = Path(__file__).parent.parent / "assets" / "BF02_Ores_Chemical_C
 CHEMISTRY_COLS = ["%Fe(T)", "%FeO", "%SiO2", "%Al2O3", "%CaO", "%MgO", "%TiO2", "%P", "%MnO", "%LOI"]
 
 # Slag components
-SLAG_COMPONENTS = ["%SiO2", "%Al2O3", "%CaO", "%MgO"]
+SLAG_COMPONENTS = ["%SiO2", "%Al2O3", "%CaO", "%MgO", "%MnO"]
 
 # Special ore flags for UI warnings
 ORE_FLAGS = {
@@ -35,6 +35,7 @@ def load_ore_chemistry() -> pd.DataFrame:
         sheet_name="Ore Chemical Compositions",
         header=2,       # Row 3 is the header
     )
+    
 
     # Drop empty rows
     df = df.dropna(subset=["Ore / Material"])
@@ -50,7 +51,7 @@ def load_ore_chemistry() -> pd.DataFrame:
     df = df[ore_mask].copy()
 
     # Replace '-' strings with NaN then 0
-    df = df.replace("-", np.nan)
+    df = df.replace("-", np.nan).infer_objects(copy=False)
 
     # Set ore name as index
     df = df.rename(columns={"Ore / Material": "ore_name"})

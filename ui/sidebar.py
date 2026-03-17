@@ -5,7 +5,7 @@ Flow:
   Step 1        — Ore checkboxes (outside form)
   Steps 2-5     — Numeric inputs + fuel inside st.sidebar.form
   Submit        — Validates and saves to session state
-  Step 6        — Grid search step size (outside form)
+  Step 6        — Grid search step size (inside form)
   Run Optimizer — Uses session state values to run
 """
 
@@ -37,9 +37,21 @@ def render_sidebar(chemistry_df: pd.DataFrame) -> dict | None:
 
     if len(selected_ores) < 2:
         st.sidebar.warning("Select at least 2 ores to begin.")
+        # Only clear saved state if we KNOW the user deliberately deselected ores
+        # (i.e. saved ores existed and now we have fewer than 2).
+        # Do NOT clear on a transient rerun where checkboxes haven't restored yet.
+        saved_ores_on_clear = set(st.session_state.get(INPUTS_KEY, {}).get("selected_ores", []))
+        if saved_ores_on_clear:
+            st.session_state.pop(INPUTS_KEY, None)
+            st.session_state.pop(READY_KEY, None)
+        return None
+
+    # Clear stale saved inputs only if the ore selection has intentionally changed
+    saved_ores = set(st.session_state.get(INPUTS_KEY, {}).get("selected_ores", []))
+    if saved_ores and saved_ores != set(selected_ores):
         st.session_state.pop(INPUTS_KEY, None)
         st.session_state.pop(READY_KEY, None)
-        return None
+        st.sidebar.info("Ore selection changed — please re-submit your inputs.")
 
     st.sidebar.divider()
 
@@ -143,10 +155,20 @@ def render_sidebar(chemistry_df: pd.DataFrame) -> dict | None:
 
         st.divider()
 
+        # ── Step 6: Grid Search Step Size (inside form so slider doesn't reset ore checkboxes) ──
+        st.subheader("Step 6 — Grid Search Step Size")
+        step_size = st.select_slider(
+            "Step Size (MT)",
+            options=[5, 10, 25, 50, 100],
+            value=st.session_state.get("step_size_saved", 10),
+            help="Smaller steps = more candidate blends = slightly slower",
+            key="step_size_input",
+        )
+
         # ── Submit Button ──────────────────────────────────────────────────────
         submitted = st.form_submit_button(
             "Submit",
-            use_container_width=True,
+            width="stretch",
         )
 
     # ── Validate and save on submit ───────────────────────────────────────────
@@ -164,12 +186,14 @@ def render_sidebar(chemistry_df: pd.DataFrame) -> dict | None:
                 nut_coke_qty_mt=nut_coke_qty, nut_coke_ash_pct=nut_coke_ash,
                 pci_qty_mt=pci_qty,           pci_ash_pct=pci_ash,
             )
+            st.session_state["step_size_saved"] = step_size
             st.session_state[INPUTS_KEY] = {
                 "selected_ores":  selected_ores,
                 "max_quantities": max_quantities,
                 "prices":         prices,
                 "target_qty":     target_qty,
                 "fuel_input":     fuel_input,
+                "step_size":      float(step_size),
             }
             st.session_state.pop(READY_KEY, None)
             st.sidebar.success("✅ Inputs saved. Select step size and run.")
@@ -189,29 +213,15 @@ def render_sidebar(chemistry_df: pd.DataFrame) -> dict | None:
 
     st.sidebar.divider()
 
-    # ── Step 6: Grid Search Step Size (outside form) ──────────────────────────
-    st.sidebar.subheader("Step 6 — Grid Search Step Size")
-    step_size = st.sidebar.select_slider(
-        "Step Size (MT)",
-        options=[5, 10, 25, 50, 100],
-        value=10,
-        help="Smaller steps = more candidate blends = slightly slower",
-    )
-
-    st.sidebar.divider()
-
     # ── Run Optimizer Button ──────────────────────────────────────────────────
     if INPUTS_KEY not in st.session_state:
         st.sidebar.info("Complete all steps and click Submit first.")
         return None
 
-    if st.sidebar.button("Run Optimizer", type="primary", use_container_width=True):
+    if st.sidebar.button("Run Optimizer", type="primary", width="stretch"):
         st.session_state[READY_KEY] = True
 
     if not st.session_state.get(READY_KEY, False):
         return None
 
-    return {
-        **st.session_state[INPUTS_KEY],
-        "step_size": float(step_size),
-    }
+    return st.session_state[INPUTS_KEY]
