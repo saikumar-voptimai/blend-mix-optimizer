@@ -144,17 +144,17 @@ pci_ash_analysis:
 
 coke_defaults:
 
-  qty_mt: 120
+  qty_mt: 800
   ash_pct: 11.2
 
 
 nut_coke_defaults:
 
-  qty_mt: 120
+  qty_mt: 100
   ash_pct: 11.2
 
 
 pci_defaults:
 
-  qty_mt: 450
+  qty_mt: 300
   ash_pct: 10
