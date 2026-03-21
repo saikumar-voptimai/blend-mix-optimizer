@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 from engine.blend_calculator import calculate_blend, blend_results_to_dict
-from config.config import cfg
+from utils.config import cfg
 
 MAX_RESULTS = 5000
 MAX_EVALUATIONS = 150_000

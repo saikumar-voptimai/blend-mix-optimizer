@@ -1,3 +1,41 @@
+
+influxdb:
+  url: "https://eu-central-1-1.aws.cloud2.influxdata.com"
+  org: "Blast Furnace, Evonith"
+  bucket: "bf2_evonith_offline_utc"
+  measurement: "rm_updated_data"
+  query:
+    default_range_days: 30
+    default_mode: latest   # latest | avg
+
+  materials:
+    ore_1: "NMDC DONIMALAI"
+    ore_2: "LLOYDS CLO"
+    ore_3: "GEOMIN CLO"
+    ore_4: "JRS VENTURES"
+    ore_5: "NMDC ROM"
+    ore_6: "LLOYDS OVERSIZE CLO"
+    ore_7: "BACHELI FINES OVER SIZE"
+    ore_8: "ACORE IND.PVT LTD"
+    ore_9: "JAYASWAL NECO"
+    ore_10: "GOMTI"
+    ore_11: "TITANI FERROUS CLO"
+    sinter_sp_02: "Sinter (SP-02)"
+    lloyds_pellet: "Lloyds Pellet (Sarda)"
+chemistry_map:
+    "fe_t": "%Fe(T)"
+    "feo": "%FeO"
+    "sio2": "%SiO2"
+    "al2o3": "%Al2O3"
+    "cao": "%CaO"
+    "mgo": "%MgO"
+    "tio2": "%TiO2"
+    "p": "%P"
+    "mno": "%MnO"
+    # "loi": "%LOI"
+    # "%K2O": "total_alkali_pct_k2o"
+    # "%Na2O": "total_alkali_pct_na2o"
+
 # ------------------------------------------------
 # BF-02 Ore Blend Optimizer Configuration
 # ------------------------------------------------
@@ -158,3 +196,6 @@ pci_defaults:
 
   qty_mt: 300
   ash_pct: 10
+
+
+  

@@ -11,7 +11,7 @@ import pandas as pd
 
 from engine.blend_calculator import calculate_blend, BlendResult
 from engine.fuel_calculator import calculate_fuel_slag, FuelInput
-from config.config import cfg
+from utils.config import cfg
 
 MANUAL_RESULT_KEY = "manual_blend_result"
 

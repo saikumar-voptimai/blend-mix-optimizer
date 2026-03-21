@@ -14,7 +14,7 @@ import pandas as pd
 from scipy.optimize import linprog
 
 from engine.blend_calculator import calculate_blend, BlendResult, FE_FROM_FEO_FACTOR
-from config.config import cfg
+from utils.config import cfg
 
 
 def _find_sinter_index(selected_ores):

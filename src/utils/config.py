@@ -12,18 +12,32 @@ import yaml
 from dataclasses import dataclass
 import streamlit as st
 
-CONFIG_FILE = Path(__file__).parent / "config.yaml"
+
+CONFIG_FILE = Path(__file__).resolve().parents[2] / "config" / "config.yaml"
+
+@dataclass
+class InfluxQueryConfig:
+    default_range_days: int
+    default_mode: str
+
+
+@dataclass
+class InfluxConfig:
+    url: str
+    org: str
+    bucket: str
+    measurement: str
+    query: InfluxQueryConfig
+    materials: dict
 
 
 @dataclass
 class Config:
 
     default_target_qty: float
-
     fallback_price: float
     fallback_max_pct: float
     fallback_min_pct: float
-
     min_fe_production_mt: float
     max_fe_production_mt: float
 
@@ -45,6 +59,8 @@ class Config:
     coke_defaults: dict
     nut_coke_defaults: dict
     pci_defaults: dict
+    influxdb: InfluxConfig
+    chemistry_map: dict
 
 
 @st.cache_resource
@@ -52,6 +68,17 @@ def load_config() -> Config:
 
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
         raw = yaml.safe_load(f)
+    
+        influx_raw = raw["influxdb"]
+
+    influx = InfluxConfig(
+        url=influx_raw["url"],
+        org=influx_raw["org"],
+        bucket=influx_raw["bucket"],
+        measurement=influx_raw["measurement"],
+        materials=influx_raw.get("materials", {}),
+        query=InfluxQueryConfig(**influx_raw["query"]),
+    )
 
     return Config(
 
@@ -82,6 +109,8 @@ def load_config() -> Config:
         coke_defaults={k: float(v) for k, v in raw["coke_defaults"].items()},
         nut_coke_defaults={k: float(v) for k, v in raw["nut_coke_defaults"].items()},
         pci_defaults={k: float(v) for k, v in raw["pci_defaults"].items()},
+        influxdb=influx,
+        chemistry_map=raw["chemistry_map"],
     )
 
 

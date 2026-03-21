@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 
 from engine.blend_calculator import BlendResult
-from config.config import cfg
+from utils.config import cfg
 from engine.fuel_calculator import FuelInput, calculate_fuel_slag
 
 

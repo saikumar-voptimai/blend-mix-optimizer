@@ -1,6 +1,6 @@
 import streamlit as st
 
-from config.config import cfg
+from utils.config import cfg
 from data.ore_chemistry import load_ore_chemistry
 
 from engine.optimizer import run_optimizer
@@ -18,9 +18,9 @@ from ui.manual_blend import render_manual_blend_tab
 from ui.styles import apply_styles, info_banner
 
 
-# -------------------------------------------------------
+
 # PAGE CONFIG
-# -------------------------------------------------------
+
 
 st.set_page_config(
     page_title="BF-02 Ore Blend Optimizer",
@@ -30,20 +30,30 @@ st.set_page_config(
 apply_styles()
 
 
-# -------------------------------------------------------
+
 # LOAD DATA
-# -------------------------------------------------------
 
-@st.cache_data
-def load_data():
-    return load_ore_chemistry()
+mode = st.sidebar.selectbox(
+    "Chemistry Source Mode",
+    ["latest", "avg"]
+)
 
-chemistry_df = load_data()
+days = st.sidebar.slider(
+    "History window (days)",
+    1,
+    90,
+    cfg.influxdb.query.default_range_days
+)
+
+@st.cache_data(ttl=300)
+def load_data(days, mode):
+    return load_ore_chemistry(days=days, mode=mode)
+
+chemistry_df = load_data(days, mode)
 
 
-# -------------------------------------------------------
 # INPUT PANEL
-# -------------------------------------------------------
+
 
 with st.expander("⚙️  Blend Configuration", expanded=True):
 
@@ -203,14 +213,11 @@ with st.expander("⚙️  Blend Configuration", expanded=True):
         run_btn = st.button(
             "🚀  Run Optimizer",
             type="primary",
-            use_container_width=True,
+            width="stretch",
         )
     st.markdown('</div>', unsafe_allow_html=True)
 
-
-# -------------------------------------------------------
 # RUN OPTIMIZER
-# -------------------------------------------------------
 
 if run_btn:
     with st.spinner("⚙️ Running optimizer..."):
@@ -264,9 +271,7 @@ if run_btn:
     st.session_state["max_fe_production_mt"] = max_fe_production_mt
 
 
-# -------------------------------------------------------
 # REQUIRE OPTIMIZER RUN
-# -------------------------------------------------------
 
 if "optimal_result" not in st.session_state:
     info_banner()
@@ -280,9 +285,9 @@ fuel_input = st.session_state["fuel_input"]
 min_fe_production_mt = st.session_state["min_fe_production_mt"]
 
 
-# -------------------------------------------------------
+
 # TABS
-# -------------------------------------------------------
+
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📋 Ore Catalogue",

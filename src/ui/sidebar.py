@@ -12,7 +12,7 @@ Flow:
 import streamlit as st
 import pandas as pd
 from data.ore_chemistry import get_ore_flag
-from config.config import cfg
+from utils.config import cfg
 from engine.fuel_calculator import FuelInput
 
 INPUTS_KEY = "submitted_inputs"
