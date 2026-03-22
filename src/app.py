@@ -2,7 +2,7 @@ import streamlit as st
 
 from utils.config import cfg
 from data.ore_chemistry import load_ore_chemistry
-
+from data.influx_loader import InfluxClient
 from engine.optimizer import run_optimizer
 from engine.grid_search import run_grid_search, estimate_combination_count
 from engine.fuel_calculator import FuelInput
@@ -33,24 +33,49 @@ apply_styles()
 
 # LOAD DATA
 
-mode = st.sidebar.selectbox(
-    "Chemistry Source Mode",
-    ["latest", "avg"]
-)
+with st.sidebar.form("chemistry_form"):
+    mode = st.selectbox(
+        "Chemistry Source Mode",
+        ["latest", "avg"],
+        index=0 if st.session_state.get("mode", "latest") == "latest" else 1
+    )
 
-days = st.sidebar.slider(
-    "History window (days)",
-    1,
-    90,
-    cfg.influxdb.query.default_range_days
-)
+    days = st.slider(
+        "History window (days)",
+        1,
+        90,
+        st.session_state.get("days", cfg.influxdb.query.default_range_days)
+    )
+    submit_sidebar = st.form_submit_button("Load Chemistry")
+# CONTROL EXECUTION USING SUBMIT BUTTON
+if "sidebar_submitted" not in st.session_state:
+    st.session_state.sidebar_submitted = False
+
+if submit_sidebar:
+    st.session_state.sidebar_submitted = True
+    st.session_state.mode = mode
+    st.session_state.days = days
+
+# Stop app until user clicks submit
+if not st.session_state.sidebar_submitted:
+    st.stop()
+
+# Use stored values
+mode = st.session_state.mode
+days = st.session_state.days
+
 
 @st.cache_data(ttl=300)
 def load_data(days, mode):
     return load_ore_chemistry(days=days, mode=mode)
 
 chemistry_df = load_data(days, mode)
+@st.cache_data(ttl=300)
+def load_stock():
+    client = InfluxClient()
+    return client.get_stock_map(cfg.influxdb.stock_materials)
 
+stock_map = load_stock()
 
 # INPUT PANEL
 
@@ -100,14 +125,18 @@ with st.expander("⚙️  Blend Configuration", expanded=True):
     for ore in selected_ores:
         c_ore, c_qty, c_price = st.columns([3, 2, 2])
         c_ore.markdown(f'<div class="ore-label">🪨 &nbsp;{ore}</div>', unsafe_allow_html=True)
+        raw_qty = float(stock_map.get(ore, cfg.default_target_qty))
+        default_qty = max(0.0, raw_qty)
+
         max_quantities[ore] = c_qty.number_input(
             f"qty_{ore}",
             min_value=0.0,
-            value=float(cfg.default_target_qty),
+            value=default_qty,
             step=10.0,
             key=f"qty_{ore}",
             label_visibility="collapsed",
         )
+        
         prices[ore] = c_price.number_input(
             f"price_{ore}",
             min_value=0.0,

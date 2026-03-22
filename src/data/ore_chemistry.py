@@ -1,4 +1,4 @@
-from data.influx_loader import InfluxRMClient
+from data.influx_loader import InfluxClient
 import pandas as pd
 from utils.config import cfg
 
@@ -16,7 +16,7 @@ ORE_FLAGS = {
 SLAG_COMPONENTS = ["%SiO2", "%Al2O3", "%CaO", "%MgO", "%MnO"]
 def load_ore_chemistry(days=30, mode="latest"):
 
-    client = InfluxRMClient()
+    client = InfluxClient()
 
     df = client.query_rm_data(days=days, mode=mode)
 

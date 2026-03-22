@@ -4,6 +4,8 @@ influxdb:
   org: "Blast Furnace, Evonith"
   bucket: "bf2_evonith_offline_utc"
   measurement: "rm_updated_data"
+  stock_bucket: "Test"
+  stock_measurement: "rm_stock"
   query:
     default_range_days: 30
     default_mode: latest   # latest | avg
@@ -22,6 +24,23 @@ influxdb:
     ore_11: "TITANI FERROUS CLO"
     sinter_sp_02: "Sinter (SP-02)"
     lloyds_pellet: "Lloyds Pellet (Sarda)"
+
+  stock_materials:
+    "LLOYDS CLO": lloyds_mt
+    "NMDC DONIMALAI": nmdc_donimalai_mt
+    "GOMTI": gomti_mt
+    "GEOMIN CLO": geomin_mt
+    "BACHELI FINES OVER SIZE": nmdc_bachelli_fines_oversize_10mm_mt
+    "JRS VENTURES": jrs_ventures_mt
+    "NMDC ROM": nmdc_rom_mt
+    "Lloyds Pellet (Sarda)": lloyds_pellet_sarda_mt
+    "JAYASWAL NECO": jayaswal_neco_mt
+    "TITANI FERROUS CLO": titaniferrous_mt
+    "ACORE IND.PVT LTD": acore_mt
+    "LLOYDS OVERSIZE CLO": lloyds_fines_oversize_10mm_mt
+    "Sinter (SP-02)": g1_total_mt
+    
+
 chemistry_map:
     "fe_t": "%Fe(T)"
     "feo": "%FeO"

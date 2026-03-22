@@ -12,7 +12,6 @@ import yaml
 from dataclasses import dataclass
 import streamlit as st
 
-
 CONFIG_FILE = Path(__file__).resolve().parents[2] / "config" / "config.yaml"
 
 @dataclass
@@ -26,8 +25,11 @@ class InfluxConfig:
     url: str
     org: str
     bucket: str
+    stock_bucket: str
     measurement: str
+    stock_measurement: str
     query: InfluxQueryConfig
+    stock_materials: dict
     materials: dict
 
 
@@ -78,6 +80,9 @@ def load_config() -> Config:
         measurement=influx_raw["measurement"],
         materials=influx_raw.get("materials", {}),
         query=InfluxQueryConfig(**influx_raw["query"]),
+        stock_bucket=influx_raw.get("stock_bucket"),
+        stock_measurement=influx_raw.get("stock_measurement", "rm_stock"),
+        stock_materials=influx_raw.get("stock_materials", {}),
     )
 
     return Config(
