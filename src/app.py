@@ -18,7 +18,6 @@ from ui.manual_blend import render_manual_blend_tab
 from ui.styles import apply_styles, info_banner
 
 
-
 # PAGE CONFIG
 
 
@@ -28,7 +27,6 @@ st.set_page_config(
 )
 
 apply_styles()
-
 
 
 # LOAD DATA
@@ -47,6 +45,7 @@ with st.sidebar.form("chemistry_form"):
         st.session_state.get("days", cfg.influxdb.query.default_range_days)
     )
     submit_sidebar = st.form_submit_button("Load Chemistry")
+    
 # CONTROL EXECUTION USING SUBMIT BUTTON
 if "sidebar_submitted" not in st.session_state:
     st.session_state.sidebar_submitted = False
@@ -69,11 +68,15 @@ days = st.session_state.days
 def load_data(days, mode):
     return load_ore_chemistry(days=days, mode=mode)
 
+
 chemistry_df = load_data(days, mode)
+
+
 @st.cache_data(ttl=300)
 def load_stock():
     client = InfluxClient()
     return client.get_stock_map(cfg.influxdb.stock_materials)
+
 
 stock_map = load_stock()
 
@@ -84,7 +87,8 @@ with st.expander("⚙️  Blend Configuration", expanded=True):
 
     # ── Step 1 — Select Ores ─────────────────────────
 
-    st.markdown('<div class="step-header">① &nbsp; Select Ores</div>', unsafe_allow_html=True)
+    st.markdown('<div class="step-header">① &nbsp; Select Ores</div>',
+                unsafe_allow_html=True)
 
     selected_ores = []
     ore_list = list(chemistry_df.index)
@@ -94,7 +98,8 @@ with st.expander("⚙️  Blend Configuration", expanded=True):
             selected_ores.append(ore)
 
     if selected_ores:
-        chips = "".join(f'<span class="summary-chip">{o}</span>' for o in selected_ores)
+        chips = "".join(
+            f'<span class="summary-chip">{o}</span>' for o in selected_ores)
         st.markdown(
             f'<div style="margin-top:6px;">{len(selected_ores)} selected: &nbsp;{chips}</div>',
             unsafe_allow_html=True,
@@ -118,13 +123,17 @@ with st.expander("⚙️  Blend Configuration", expanded=True):
 
     # Column header row
     hc_ore, hc_qty, hc_price = st.columns([3, 2, 2])
-    hc_ore.markdown('<div class="col-header">Ore / Vendor</div>', unsafe_allow_html=True)
-    hc_qty.markdown('<div class="col-header">Available in Yard (MT)</div>', unsafe_allow_html=True)
-    hc_price.markdown('<div class="col-header">Price (₹ / MT)</div>', unsafe_allow_html=True)
+    hc_ore.markdown('<div class="col-header">Ore / Vendor</div>',
+                    unsafe_allow_html=True)
+    hc_qty.markdown(
+        '<div class="col-header">Available in Yard (MT)</div>', unsafe_allow_html=True)
+    hc_price.markdown(
+        '<div class="col-header">Price (₹ / MT)</div>', unsafe_allow_html=True)
 
     for ore in selected_ores:
         c_ore, c_qty, c_price = st.columns([3, 2, 2])
-        c_ore.markdown(f'<div class="ore-label">🪨 &nbsp;{ore}</div>', unsafe_allow_html=True)
+        c_ore.markdown(
+            f'<div class="ore-label">🪨 &nbsp;{ore}</div>', unsafe_allow_html=True)
         raw_qty = float(stock_map.get(ore, cfg.default_target_qty))
         default_qty = max(0.0, raw_qty)
 
@@ -136,7 +145,7 @@ with st.expander("⚙️  Blend Configuration", expanded=True):
             key=f"qty_{ore}",
             label_visibility="collapsed",
         )
-        
+
         prices[ore] = c_price.number_input(
             f"price_{ore}",
             min_value=0.0,
@@ -150,17 +159,22 @@ with st.expander("⚙️  Blend Configuration", expanded=True):
 
     # ── Step 3 — Fuel Inputs ─────────────────────────
 
-    st.markdown('<div class="step-header">③ &nbsp; Fuel Inputs</div>', unsafe_allow_html=True)
+    st.markdown('<div class="step-header">③ &nbsp; Fuel Inputs</div>',
+                unsafe_allow_html=True)
 
     # Headers
     _, fh1, fh2, fh3 = st.columns([2, 2, 2, 2])
-    fh1.markdown('<div class="fuel-col-header">🔥 Coke</div>', unsafe_allow_html=True)
-    fh2.markdown('<div class="fuel-col-header">🔥 Nut Coke</div>', unsafe_allow_html=True)
-    fh3.markdown('<div class="fuel-col-header">💨 PCI</div>', unsafe_allow_html=True)
+    fh1.markdown('<div class="fuel-col-header">🔥 Coke</div>',
+                 unsafe_allow_html=True)
+    fh2.markdown('<div class="fuel-col-header">🔥 Nut Coke</div>',
+                 unsafe_allow_html=True)
+    fh3.markdown('<div class="fuel-col-header">💨 PCI</div>',
+                 unsafe_allow_html=True)
 
     # Quantity row
     fl0, fl1, fl2, fl3 = st.columns([2, 2, 2, 2])
-    fl0.markdown('<div style="padding-top:7px; font-size:13px; font-weight:500; color:#444;">Quantity (MT)</div>', unsafe_allow_html=True)
+    fl0.markdown(
+        '<div style="padding-top:7px; font-size:13px; font-weight:500; color:#444;">Quantity (MT)</div>', unsafe_allow_html=True)
     coke_qty = fl1.number_input(
         "Coke Qty (MT)", min_value=0.0, value=float(cfg.coke_defaults["qty_mt"]),
         step=10.0, key="coke_qty", label_visibility="collapsed",
@@ -176,7 +190,8 @@ with st.expander("⚙️  Blend Configuration", expanded=True):
 
     # Ash row
     fl0b, fl1b, fl2b, fl3b = st.columns([2, 2, 2, 2])
-    fl0b.markdown('<div style="padding-top:7px; font-size:13px; font-weight:500; color:#444;">Ash %</div>', unsafe_allow_html=True)
+    fl0b.markdown(
+        '<div style="padding-top:7px; font-size:13px; font-weight:500; color:#444;">Ash %</div>', unsafe_allow_html=True)
     coke_ash = fl1b.number_input(
         "Coke Ash %", min_value=0.0, max_value=100.0, value=float(cfg.coke_defaults["ash_pct"]),
         step=0.1, key="coke_ash", label_visibility="collapsed",
@@ -314,7 +329,6 @@ fuel_input = st.session_state["fuel_input"]
 min_fe_production_mt = st.session_state["min_fe_production_mt"]
 
 
-
 # TABS
 
 
@@ -333,7 +347,8 @@ with tab1:
 
 
 with tab2:
-    render_best_blend_card(optimal_result, fuel_input, min_fe_production_mt=min_fe_production_mt)
+    render_best_blend_card(optimal_result, fuel_input,
+                           min_fe_production_mt=min_fe_production_mt)
 
 
 with tab3:

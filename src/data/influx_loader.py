@@ -34,9 +34,8 @@ class InfluxClient:
         self.rm_measurement = cfg.influxdb.measurement
         self.stock_measurement = "rm_stock"
 
-    # -------------------------------------------------
-    # RM CHEMISTRY (EXISTING)
-    # -------------------------------------------------
+    # RM CHEMISTRY
+
     def query_rm_data(self, days: int = 30, mode: str = "latest"):
         sql = f"""
         SELECT *
@@ -56,7 +55,7 @@ class InfluxClient:
         if mode == "avg":
             return df.mean(numeric_only=True).to_frame().T
 
-        # ✅ latest non-null per column
+        #  latest non-null per column
         latest_row = {}
         for col in df.columns:
             if col == "time":
@@ -67,9 +66,8 @@ class InfluxClient:
 
         return pd.DataFrame([latest_row])
 
-    # -------------------------------------------------
-    # RM STOCK (NEW)
-    # -------------------------------------------------
+    # RM STOCK
+
     def query_rm_stock(self):
         """
         Fetch latest stock snapshot (wide format)
@@ -86,7 +84,6 @@ class InfluxClient:
 
         if df is None or df.empty:
             raise RuntimeError("No RM stock data found in InfluxDB")
-  
 
         return df
 
