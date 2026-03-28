@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 
 from engine.blend_calculator import calculate_blend, blend_results_to_dict
+from engine.fuel_calculator import FuelInput, calculate_fuel_slag
 from utils.config import cfg
 
 MAX_RESULTS = 5000
@@ -52,6 +53,26 @@ def _build_candidates(opt_qty: float, max_q: float, step_size: float) -> list[fl
     return candidates
 
 
+def _ensure_starter_candidates(candidates: list[float], opt_qty: float, max_q: float, step_size: float) -> list[float]:
+    """Ensure we can explore introducing ores that are 0 in the LP optimum.
+
+    If an ore's optimum quantity is ~0, the radius-based candidate builder will often
+    return only [0]. That freezes the ore at zero and can cause the grid search to
+    return no nearby alternatives. Add a small positive candidate when possible.
+    """
+    if not candidates:
+        candidates = [0.0]
+
+    if abs(float(opt_qty)) < 1e-9 and float(max_q) > 0:
+        small = min(float(max_q), float(step_size))
+        if small > 0:
+            candidates = list(candidates) + [float(small)]
+
+    candidates = sorted({round(float(c), 10) for c in candidates})
+    candidates.sort(key=lambda c: (abs(c - opt_qty), c))
+    return candidates
+
+
 def run_grid_search(
     selected_ores: list[str],
     optimal_quantities: dict[str, float],
@@ -61,6 +82,7 @@ def run_grid_search(
     chemistry_df: pd.DataFrame,
     min_fe_production_mt: float | None = None,
     max_fe_production_mt: float | None = None,
+    fuel_input: FuelInput | None = None,
 ) -> pd.DataFrame:
     if min_fe_production_mt is None:
         min_fe_production_mt = float(cfg.min_fe_production_mt)
@@ -74,13 +96,22 @@ def run_grid_search(
     for ore in selected_ores:
         opt_qty = float(optimal_quantities.get(ore, 0.0))
         max_q = float(max_quantities.get(ore, opt_qty))
-        candidate_ranges.append(_build_candidates(opt_qty, max_q, step_size))
+        cands = _build_candidates(opt_qty, max_q, step_size)
+        cands = _ensure_starter_candidates(cands, opt_qty, max_q, step_size)
+        candidate_ranges.append(cands)
         min_pcts.append(float(cfg.ore_min_pct.get(ore, cfg.fallback_min_pct)) / 100.0)
         max_pcts.append(float(cfg.ore_max_pct.get(ore, cfg.fallback_max_pct)) / 100.0)
 
     results = []
     started = time.perf_counter()
     evaluated = 0
+
+    fuel_slag_mt = 0.0
+    if fuel_input is not None:
+        try:
+            fuel_slag_mt = float(calculate_fuel_slag(fuel_input).total_fuel_slag_mt)
+        except Exception:
+            fuel_slag_mt = 0.0
 
     for combo in itertools.product(*candidate_ranges):
         if len(results) >= MAX_RESULTS:
@@ -121,7 +152,8 @@ def run_grid_search(
         if fe_production_mt > max_fe_production_mt + _EPS:
             continue
 
-        if float(blend.slag_mt) > float(cfg.target_slag_qty) + _EPS:
+        total_slag_mt = float(blend.slag_mt) + float(fuel_slag_mt)
+        if total_slag_mt > float(cfg.target_slag_qty) + _EPS:
             continue
 
         row = blend_results_to_dict(blend)

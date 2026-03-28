@@ -120,3 +120,59 @@ def load_config() -> Config:
 
 
 cfg = load_config()
+
+
+def persist_overrides(
+    *,
+    ore_min_pct: dict[str, float] | None = None,
+    ore_max_pct: dict[str, float] | None = None,
+    target_slag_qty: float | None = None,
+) -> None:
+    """Persist user overrides into config.yaml and update the live cfg in-place.
+
+    Notes:
+    - Updates are merged into the existing YAML (only provided keys change).
+    - cfg is mutated in-place so modules that imported `cfg` see updates.
+    """
+
+    if ore_min_pct is None and ore_max_pct is None and target_slag_qty is None:
+        return
+
+    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+        raw = yaml.safe_load(f) or {}
+
+    if ore_min_pct is not None:
+        raw.setdefault("ore_min_pct", {})
+        for k, v in ore_min_pct.items():
+            raw["ore_min_pct"][k] = float(v)
+
+    if ore_max_pct is not None:
+        raw.setdefault("ore_max_pct", {})
+        for k, v in ore_max_pct.items():
+            raw["ore_max_pct"][k] = float(v)
+
+    if target_slag_qty is not None:
+        raw["target_slag_qty"] = float(target_slag_qty)
+
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        yaml.safe_dump(
+            raw,
+            f,
+            sort_keys=False,
+            default_flow_style=False,
+            allow_unicode=True,
+        )
+
+    # Update in-memory cfg (in-place) so all importers see the new values.
+    if ore_min_pct is not None:
+        cfg.ore_min_pct.update({k: float(v) for k, v in ore_min_pct.items()})
+    if ore_max_pct is not None:
+        cfg.ore_max_pct.update({k: float(v) for k, v in ore_max_pct.items()})
+    if target_slag_qty is not None:
+        cfg.target_slag_qty = float(target_slag_qty)
+
+    # Clear cached loader so any future load_config() calls re-read the file.
+    try:
+        load_config.clear()
+    except Exception:
+        pass

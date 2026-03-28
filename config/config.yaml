@@ -1,166 +1,106 @@
-
 influxdb:
-  url: "https://eu-central-1-1.aws.cloud2.influxdata.com"
-  org: "Blast Furnace, Evonith"
-  bucket: "bf2_evonith_offline_utc"
-  measurement: "rm_updated_data"
-  stock_bucket: "Test"
-  stock_measurement: "rm_stock"
+  url: https://eu-central-1-1.aws.cloud2.influxdata.com
+  org: Blast Furnace, Evonith
+  bucket: bf2_evonith_offline_utc
+  measurement: rm_updated_data
+  stock_bucket: Test
+  stock_measurement: rm_stock
   query:
     default_range_days: 30
-    default_mode: latest   # latest | avg
-
+    default_mode: latest
   materials:
-    ore_1: "NMDC DONIMALAI"
-    ore_2: "LLOYDS CLO"
-    ore_3: "GEOMIN CLO"
-    ore_4: "JRS VENTURES"
-    ore_5: "NMDC ROM"
-    ore_6: "LLOYDS OVERSIZE CLO"
-    ore_7: "BACHELI FINES OVER SIZE"
-    ore_8: "ACORE IND.PVT LTD"
-    ore_9: "JAYASWAL NECO"
-    ore_10: "GOMTI"
-    ore_11: "TITANI FERROUS CLO"
-    sinter_sp_02: "Sinter (SP-02)"
-    lloyds_pellet: "Lloyds Pellet (Sarda)"
-
+    ore_1: NMDC DONIMALAI
+    ore_2: LLOYDS CLO
+    ore_3: GEOMIN CLO
+    ore_4: JRS VENTURES
+    ore_5: NMDC ROM
+    ore_6: LLOYDS OVERSIZE CLO
+    ore_7: BACHELI FINES OVER SIZE
+    ore_8: ACORE IND.PVT LTD
+    ore_9: JAYASWAL NECO
+    ore_10: GOMTI CLO
+    ore_11: TITANI FERROUS CLO
+    sinter_sp_02: SINTER (SP-02)
+    lloyds_pellet: LLOYDS PELLET (SARDA)
   stock_materials:
-    "LLOYDS CLO": lloyds_mt
-    "NMDC DONIMALAI": nmdc_donimalai_mt
-    "GOMTI": gomti_mt
-    "GEOMIN CLO": geomin_mt
-    "BACHELI FINES OVER SIZE": nmdc_bachelli_fines_oversize_10mm_mt
-    "JRS VENTURES": jrs_ventures_mt
-    "NMDC ROM": nmdc_rom_mt
-    "Lloyds Pellet (Sarda)": lloyds_pellet_sarda_mt
-    "JAYASWAL NECO": jayaswal_neco_mt
-    "TITANI FERROUS CLO": titaniferrous_mt
-    "ACORE IND.PVT LTD": acore_mt
-    "LLOYDS OVERSIZE CLO": lloyds_fines_oversize_10mm_mt
-    "Sinter (SP-02)": g1_total_mt
-    
-
+    LLOYDS CLO: lloyds_mt
+    NMDC DONIMALAI: nmdc_donimalai_mt
+    GOMTI CLO: gomti_mt
+    GEOMIN CLO: geomin_mt
+    BACHELI FINES OVER SIZE: nmdc_bachelli_fines_oversize_10mm_mt
+    JRS VENTURES: jrs_ventures_mt
+    NMDC ROM: nmdc_rom_mt
+    LLOYDS PELLET (SARDA): lloyds_pellet_sarda_mt
+    JAYASWAL NECO: jayaswal_neco_mt
+    TITANI FERROUS CLO: titaniferrous_mt
+    ACORE IND.PVT LTD: acore_mt
+    LLOYDS OVERSIZE CLO: lloyds_fines_oversize_10mm_mt
+    SINTER (SP-02): g1_total_mt
 chemistry_map:
-    "fe_t": "%Fe(T)"
-    "feo": "%FeO"
-    "sio2": "%SiO2"
-    "al2o3": "%Al2O3"
-    "cao": "%CaO"
-    "mgo": "%MgO"
-    "tio2": "%TiO2"
-    "p": "%P"
-    "mno": "%MnO"
-    # "loi": "%LOI"
-    # "%K2O": "total_alkali_pct_k2o"
-    # "%Na2O": "total_alkali_pct_na2o"
-
-# ------------------------------------------------
-# BF-02 Ore Blend Optimizer Configuration
-# ------------------------------------------------
-
+  fe_t: '%Fe(T)'
+  feo: '%FeO'
+  sio2: '%SiO2'
+  al2o3: '%Al2O3'
+  cao: '%CaO'
+  mgo: '%MgO'
+  tio2: '%TiO2'
+  p: '%P'
+  mno: '%MnO'
 default_target_qty: 3800
-
 fallback_price: 5000
 fallback_max_pct: 100
 fallback_min_pct: 0
-
-
-# ------------------------------------------------
-# Fe production constraints
-# ------------------------------------------------
-
 min_fe_production_mt: 2350
 max_fe_production_mt: 2500
-
-
-# ------------------------------------------------
-# Fe loss constant (BF losses)
-# ------------------------------------------------
-
 fe_loss_constant: 0.56
-
-
-# ------------------------------------------------
-# Slag chemistry correction
-# ------------------------------------------------
-
 feo_in_slag: 0.4
 si_in_slag: 0.5
-
-
-# ------------------------------------------------
-# Slag constraint
-# ------------------------------------------------
-
-target_slag_qty: 700
-
-
-# ------------------------------------------------
-# Ore prices
-# ------------------------------------------------
-
+target_slag_qty: 700.0
 ore_prices:
-
   NMDC ROM: 8739
-  NMDC Donimalai: 5684
-  Bacheli Fines O/S: 10000
-  Lloyds Pellet (Sarda): 9650
-  Lloyds Fines O/S: 6162
-  Lloyds CLO: 8051
-  JRS Ventures CLO: 6831
-  Jayaswal Neco: 6650
-  Gomti CLO: 5349
-  Titani Ferrous CLO: 4939
-  Geomin CLO: 3827
-  Acore Industries: 8473
-  Sinter (SP-02): 5282
-
-
-# ------------------------------------------------
-# Ore percentage limits
-# ------------------------------------------------
-
+  NMDC DONIMALAI: 5684
+  BACHELI FINES O/S: 10000
+  LLOYDS PELLET (SARDA): 9650
+  LLOYDS FINES O/S: 6162
+  LLOYDS CLO: 8051
+  JRS VENTURES CLO: 6831
+  JAYASWAL NECO: 6650
+  GOMTI CLO: 5349
+  TITANI FERROUS CLO: 4939
+  GEOMIN CLO: 3827
+  ACORE INDUSTRIES: 8473
+  SINTER (SP-02): 5282
 ore_max_pct:
-
   NMDC ROM: 30
-  NMDC Donimalai: 15
-  Bacheli Fines O/S: 10
-  Lloyds Pellet (Sarda): 10
-  Lloyds Fines O/S: 10
-  Lloyds CLO: 30
-  JRS Ventures CLO: 20
-  Jayaswal Neco: 20
-  Gomti CLO: 30
-  Titani Ferrous CLO: 3
-  Geomin CLO: 20
-  Acore Industries: 3
-  Sinter (SP-02): 65
-
-
+  NMDC DONIMALAI: 15.0
+  BACHELI FINES O/S: 10
+  LLOYDS PELLET (SARDA): 10
+  LLOYDS FINES O/S: 10
+  LLOYDS CLO: 30.0
+  JRS VENTURES CLO: 20
+  JAYASWAL NECO: 20
+  GOMTI CLO: 30.0
+  TITANI FERROUS CLO: 3
+  GEOMIN CLO: 20.0
+  ACORE INDUSTRIES: 3
+  SINTER (SP-02): 65.0
+  LLOYDS OVERSIZE CLO: 100.0
 ore_min_pct:
-
   NMDC ROM: 0
-  NMDC Donimalai: 0
-  Bacheli Fines O/S: 0
-  Lloyds Pellet (Sarda): 0
-  Lloyds Fines O/S: 0
-  Lloyds CLO: 0
-  JRS Ventures CLO: 0
-  Jayaswal Neco: 0
-  Gomti CLO: 0
-  Titani Ferrous CLO: 0
-  Geomin CLO: 0
-  Acore Industries: 0
-  Sinter (SP-02): 50
-
-
-# ------------------------------------------------
-# Fuel ash chemistry
-# ------------------------------------------------
-
+  NMDC DONIMALAI: 0.0
+  BACHELI FINES O/S: 0
+  LLOYDS PELLET (SARDA): 0
+  LLOYDS FINES O/S: 0
+  LLOYDS CLO: 0.0
+  JRS VENTURES CLO: 0
+  JAYASWAL NECO: 0
+  GOMTI CLO: 0.0
+  TITANI FERROUS CLO: 0
+  GEOMIN CLO: 0.0
+  ACORE INDUSTRIES: 0
+  SINTER (SP-02): 55.0
+  LLOYDS OVERSIZE CLO: 0.0
 coke_ash_analysis:
-
   SiO2: 56.51
   Al2O3: 27.64
   CaO: 2.65
@@ -169,10 +109,7 @@ coke_ash_analysis:
   S: 0.74
   P: 0.041
   TiO2: 1.46
-
-
 nut_coke_ash_analysis:
-
   SiO2: 55.76
   Al2O3: 26.96
   CaO: 3.42
@@ -181,10 +118,7 @@ nut_coke_ash_analysis:
   S: 0.77
   P: 0.039
   TiO2: 1.491
-
-
 pci_ash_analysis:
-
   SiO2: 51.72
   Al2O3: 24.55
   CaO: 5.79
@@ -193,28 +127,12 @@ pci_ash_analysis:
   S: 0.41
   P: 0.054
   TiO2: 0.973
-
-
-# ------------------------------------------------
-# Default fuel inputs
-# ------------------------------------------------
-
 coke_defaults:
-
   qty_mt: 800
   ash_pct: 11.2
-
-
 nut_coke_defaults:
-
   qty_mt: 100
   ash_pct: 11.2
-
-
 pci_defaults:
-
   qty_mt: 300
   ash_pct: 10
-
-
-  

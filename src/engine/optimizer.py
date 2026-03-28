@@ -14,6 +14,7 @@ import pandas as pd
 from scipy.optimize import linprog
 
 from engine.blend_calculator import calculate_blend, BlendResult, FE_FROM_FEO_FACTOR
+from engine.fuel_calculator import FuelInput, calculate_fuel_slag
 from utils.config import cfg
 
 
@@ -42,6 +43,7 @@ def run_optimizer(
     chemistry_df,
     min_fe_production_mt,
     max_fe_production_mt,
+    fuel_input: FuelInput | None = None,
 ):
 
     n = len(selected_ores)
@@ -61,56 +63,70 @@ def run_optimizer(
         fe_min_coeff.append(-fe / 100)
         fe_max_coeff.append(fe / 100)
 
-    A_ub = []
-    b_ub = []
+    A_ub: list[list[float]] = []
+    b_ub: list[float] = []
 
-    A_ub.append(slag_coeff)
-    b_ub.append(cfg.target_slag_qty)
+    # Slag constraint: cfg.target_slag_qty is treated as TOTAL BF slag budget.
+    # Ore-derived slag is constrained to (budget - fuel_slag).
+    fuel_slag_mt = 0.0
+    if fuel_input is not None:
+        try:
+            fuel_slag_mt = float(calculate_fuel_slag(fuel_input).total_fuel_slag_mt)
+        except Exception:
+            fuel_slag_mt = 0.0
+
+    slag_budget_mt = float(cfg.target_slag_qty) - fuel_slag_mt
+    if slag_budget_mt < 0:
+        # Fuel slag already exceeds the slag budget → infeasible by definition.
+        return None
+
+    A_ub.append(list(slag_coeff))
+    b_ub.append(float(slag_budget_mt))
 
     if min_fe_production_mt is None:
         min_fe_production_mt = float(cfg.min_fe_production_mt)
     if max_fe_production_mt is None:
         max_fe_production_mt = float(cfg.max_fe_production_mt)
 
-    A_ub.append(fe_min_coeff)
-    b_ub.append(-min_fe_production_mt)
+    A_ub.append(list(fe_min_coeff))
+    b_ub.append(float(-min_fe_production_mt))
 
-    A_ub.append(fe_max_coeff)
-    b_ub.append(max_fe_production_mt)
+    A_ub.append(list(fe_max_coeff))
+    b_ub.append(float(max_fe_production_mt))
 
-    sl = []
-    sh = []
+    # Share constraints (linearised):
+    #   min: x_i >= sl_i * sum(x)  ->  sl_i*sum(x) - x_i <= 0
+    #   max: x_i <= sh_i * sum(x)  ->  x_i - sh_i*sum(x) <= 0
+    sl = [float(cfg.ore_min_pct.get(ore, cfg.fallback_min_pct)) / 100.0 for ore in selected_ores]
+    sh = [float(cfg.ore_max_pct.get(ore, cfg.fallback_max_pct)) / 100.0 for ore in selected_ores]
+
+    for i in range(n):
+        sl_i = float(sl[i])
+        row = [sl_i] * n
+        row[i] = sl_i - 1.0
+        A_ub.append(row)
+        b_ub.append(0.0)
+
+    for i in range(n):
+        sh_i = float(sh[i])
+        row = [-sh_i] * n
+        row[i] = 1.0 - sh_i
+        A_ub.append(row)
+        b_ub.append(0.0)
+
+    bounds = []
     for ore in selected_ores:
-        sl.append(cfg.ore_min_pct.get(ore, cfg.fallback_min_pct) / 100)
-        sh.append(cfg.ore_max_pct.get(ore, cfg.fallback_max_pct) / 100)
-
-    A_ub = np.array(A_ub)
-
-    ar_low = []
-    for i in range(n):
-        row = list(sl)
-        row[i] = -(1 - sl[i])
-        ar_low.append(row)
-        b_ub.append(0)
-
-    ar_low = np.transpose(np.array(ar_low))
-
-    ar_high = []
-    for i in range(n):
-        row = [-val for val in sh]
-        row[i] = (1 - sh[i])
-        ar_high.append(row)
-        b_ub.append(0)
-
-    ar_high = np.transpose(np.array(ar_high))
-
-    A_ub = np.vstack([A_ub, ar_low, ar_high])
+        max_q = max_quantities.get(ore, None)
+        if max_q is None:
+            bounds.append((0.0, None))
+        else:
+            bounds.append((0.0, float(max_q)))
 
     result = linprog(
         c=c,
         A_ub=np.array(A_ub),
         b_ub=np.array(b_ub),
-        bounds=None,
+        bounds=bounds,
         method="highs",
     )
 

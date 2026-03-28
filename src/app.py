@@ -1,6 +1,7 @@
 import streamlit as st
+import pandas as pd
 
-from utils.config import cfg
+from utils.config import cfg, persist_overrides
 from data.ore_chemistry import load_ore_chemistry
 from data.influx_loader import InfluxClient
 from engine.optimizer import run_optimizer
@@ -11,7 +12,6 @@ from ui.results import render_best_blend_card, render_top_blends_table
 from ui.charts import (
     render_pareto_scatter,
     render_composition_bar,
-    render_radar_chart,
     render_fe_contribution_waterfall,
 )
 from ui.manual_blend import render_manual_blend_tab
@@ -22,7 +22,7 @@ from ui.styles import apply_styles, info_banner
 
 
 st.set_page_config(
-    page_title="BF-02 Ore Blend Optimizer",
+    page_title="Ore Blend Optimizer",
     layout="wide",
 )
 
@@ -216,6 +216,75 @@ with st.expander("⚙️  Blend Configuration", expanded=True):
 
     st.divider()
 
+    # ── Constraint Overrides (persist to config.yaml) ───────────────────────
+
+    with st.expander("🧰  Constraint Overrides (persist)", expanded=False):
+        st.caption(
+            "Edits here are saved to config/config.yaml and apply to the optimizer and grid search. "
+            "Slag limit is treated as TOTAL BF slag (ore + fuel)."
+        )
+
+        new_target_slag = st.number_input(
+            "Target Total Slag (MT)",
+            min_value=0.0,
+            value=float(cfg.target_slag_qty),
+            step=10.0,
+            key="override_target_slag_qty",
+        )
+
+        limits_rows = []
+        for ore in selected_ores:
+            limits_rows.append(
+                {
+                    "Ore / Vendor": ore,
+                    "Min %": float(cfg.ore_min_pct.get(ore, cfg.fallback_min_pct)),
+                    "Max %": float(cfg.ore_max_pct.get(ore, cfg.fallback_max_pct)),
+                }
+            )
+
+        limits_df = pd.DataFrame(limits_rows)
+        edited_limits_df = st.data_editor(
+            limits_df,
+            hide_index=True,
+            use_container_width=True,
+            disabled=["Ore / Vendor"],
+            column_config={
+                "Min %": st.column_config.NumberColumn("Min %", min_value=0.0, max_value=100.0, step=0.5),
+                "Max %": st.column_config.NumberColumn("Max %", min_value=0.0, max_value=100.0, step=0.5),
+            },
+        )
+
+        save_col, reset_col = st.columns([1, 1])
+        save_clicked = save_col.button("💾 Save overrides", type="primary")
+        reset_clicked = reset_col.button("↩️ Reset to YAML values")
+
+        if reset_clicked:
+            # Force a rerun so the editor re-initializes from cfg
+            st.rerun()
+
+        if save_clicked:
+            ore_min_updates: dict[str, float] = {}
+            ore_max_updates: dict[str, float] = {}
+
+            for _, row in edited_limits_df.iterrows():
+                ore = str(row["Ore / Vendor"])
+                mn = float(row["Min %"])
+                mx = float(row["Max %"])
+                if mn > mx:
+                    st.error(f"Min% cannot exceed Max% for {ore}.")
+                    st.stop()
+                ore_min_updates[ore] = mn
+                ore_max_updates[ore] = mx
+
+            persist_overrides(
+                ore_min_pct=ore_min_updates,
+                ore_max_pct=ore_max_updates,
+                target_slag_qty=float(new_target_slag),
+            )
+
+            st.success("Saved. Overrides will apply on this run.")
+            st.rerun()
+
     # ── Step 4 — Search Settings & Fe Range (combined) ──
 
     st.markdown(
@@ -272,6 +341,7 @@ if run_btn:
             chemistry_df=chemistry_df,
             min_fe_production_mt=min_fe_production_mt,
             max_fe_production_mt=max_fe_production_mt,
+            fuel_input=fuel_input,
         )
 
     if optimal_result is None:
@@ -304,6 +374,7 @@ if run_btn:
             chemistry_df=chemistry_df,
             min_fe_production_mt=min_fe_production_mt,
             max_fe_production_mt=max_fe_production_mt,
+            fuel_input=fuel_input,
         )
 
     st.session_state["optimal_result"] = optimal_result
@@ -356,8 +427,6 @@ with tab3:
         render_pareto_scatter(grid_df, optimal_result)
         st.divider()
         render_composition_bar(grid_df, selected_ores)
-        st.divider()
-        render_radar_chart(grid_df, [2, 3, 4], optimal_result)
         st.divider()
         render_fe_contribution_waterfall(optimal_result, chemistry_df)
     else:
