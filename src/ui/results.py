@@ -50,7 +50,7 @@ def render_best_blend_card(
         🏆 &nbsp;Optimal Blend
       </div>
       <div style="color:#c8ddf0; font-size:13px; margin-top:6px;">
-        ₹{result.cost_per_mt:,.0f} / MT &nbsp;·&nbsp;
+        ₹{result.cost_per_thm:,.0f} / THM &nbsp;·&nbsp;
         {total_fe_mt:.1f} MT Fe &nbsp;·&nbsp;
         {total_slag:.1f} MT Total Slag &nbsp;·&nbsp;
         {result.total_qty:.0f} MT Ore Blend
@@ -100,7 +100,7 @@ def render_best_blend_card(
         delta_color="inverse",
     )
     k6.metric("Ore Blend Qty",  f"{result.total_qty:.0f} MT")
-    k7.metric("Cost / MT",      f"₹{result.cost_per_mt:,.0f}")
+    k7.metric("Cost / THM",     f"₹{result.cost_per_thm:,.0f}")
     k8.metric("Total Cost",     f"₹{result.total_cost / 100_000:.2f} L")
 
     st.divider()
@@ -216,7 +216,7 @@ def render_top_blends_table(grid_df: pd.DataFrame, fuel_input: FuelInput = None)
         max_value=max_show,
         value=default_show,
         step=5,
-        help="Number of top-ranked blends to display (ranked by ₹/MT ascending)",
+        help="Number of top-ranked blends to display (ranked by ₹/THM ascending)",
     ))
 
     # ── Build display dataframe ───────────────────────────────────────────────
@@ -237,7 +237,7 @@ def render_top_blends_table(grid_df: pd.DataFrame, fuel_input: FuelInput = None)
     ordered_cols = (
         qty_cols
         + ["Total Qty (MT)", "Fe%", "Net Fe% (HM)", "Fe Production (MT)",
-           "Slag (MT)", "Cost/MT (₹)", "Total Cost (₹)"]
+           "Total Slag (MT)", "Slag (MT)", "Cost/THM (₹)", "Total Cost (₹)"]
     )
     ordered_cols = [c for c in ordered_cols if c in show_df.columns]
     show_df = show_df[ordered_cols].rename(columns=rename_map).head(top_n).copy()
@@ -245,7 +245,7 @@ def render_top_blends_table(grid_df: pd.DataFrame, fuel_input: FuelInput = None)
     ore_names = list(rename_map.values())
 
     # ── Column config ─────────────────────────────────────────────────────────
-    cost_col   = "Cost/MT (₹)"
+    cost_col   = "Cost/THM (₹)"
     cost_vals  = pd.to_numeric(show_df[cost_col], errors="coerce") if cost_col in show_df.columns else None
     cost_min   = float(cost_vals.min()) if cost_vals is not None else 0.0
     cost_max   = float(cost_vals.max()) if cost_vals is not None else 1.0
@@ -254,7 +254,7 @@ def render_top_blends_table(grid_df: pd.DataFrame, fuel_input: FuelInput = None)
 
     if cost_col in show_df.columns:
         col_config[cost_col] = st.column_config.ProgressColumn(
-            "Cost/MT (₹)",
+            "Cost/THM (₹)",
             format="₹%.0f",
             min_value=cost_min,
             max_value=cost_max,
@@ -269,6 +269,7 @@ def render_top_blends_table(grid_df: pd.DataFrame, fuel_input: FuelInput = None)
         ("Fe%",                  "%.3f%%"),
         ("Net Fe% (HM)",         "%.3f%%"),
         ("Fe Production (MT)",   "%.1f MT"),
+        ("Total Slag (MT)",      "%.1f MT"),
         ("Slag (MT)",            "%.1f MT"),
         ("Total Cost (₹)",       "₹%.0f"),
     ]:
@@ -296,5 +297,5 @@ def render_top_blends_table(grid_df: pd.DataFrame, fuel_input: FuelInput = None)
 
     st.caption(
         f"Showing {min(top_n, len(show_df))} of {len(grid_df):,} feasible blends. "
-        f"Ranked #1 = lowest ₹/MT. Increase 'Show top' to see more."
+        f"Ranked #1 = lowest ₹/THM. Increase 'Show top' to see more."
     )

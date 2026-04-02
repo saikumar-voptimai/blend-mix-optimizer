@@ -126,6 +126,7 @@ def persist_overrides(
     *,
     ore_min_pct: dict[str, float] | None = None,
     ore_max_pct: dict[str, float] | None = None,
+    ore_prices: dict[str, float] | None = None,
     target_slag_qty: float | None = None,
 ) -> None:
     """Persist user overrides into config.yaml and update the live cfg in-place.
@@ -135,7 +136,7 @@ def persist_overrides(
     - cfg is mutated in-place so modules that imported `cfg` see updates.
     """
 
-    if ore_min_pct is None and ore_max_pct is None and target_slag_qty is None:
+    if ore_min_pct is None and ore_max_pct is None and ore_prices is None and target_slag_qty is None:
         return
 
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
@@ -150,6 +151,11 @@ def persist_overrides(
         raw.setdefault("ore_max_pct", {})
         for k, v in ore_max_pct.items():
             raw["ore_max_pct"][k] = float(v)
+
+    if ore_prices is not None:
+        raw.setdefault("ore_prices", {})
+        for k, v in ore_prices.items():
+            raw["ore_prices"][k] = float(v)
 
     if target_slag_qty is not None:
         raw["target_slag_qty"] = float(target_slag_qty)
@@ -168,6 +174,8 @@ def persist_overrides(
         cfg.ore_min_pct.update({k: float(v) for k, v in ore_min_pct.items()})
     if ore_max_pct is not None:
         cfg.ore_max_pct.update({k: float(v) for k, v in ore_max_pct.items()})
+    if ore_prices is not None:
+        cfg.ore_prices.update({k: float(v) for k, v in ore_prices.items()})
     if target_slag_qty is not None:
         cfg.target_slag_qty = float(target_slag_qty)
 
