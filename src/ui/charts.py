@@ -9,9 +9,7 @@ Charts:
 """
 
 import plotly.graph_objects as go
-import plotly.express as px
 import pandas as pd
-import numpy as np
 import streamlit as st
 from engine.blend_calculator import BlendResult
 
@@ -53,7 +51,7 @@ def render_pareto_scatter(grid_df: pd.DataFrame, optimal: BlendResult):
 
     # All comparison blends
     fig.add_trace(go.Scatter(
-        x=grid_df["Cost/MT (₹)"],
+        x=grid_df["Cost/THM (₹)"],
         y=grid_df["Fe%"],
         mode="markers",
         marker=dict(
@@ -69,7 +67,7 @@ def render_pareto_scatter(grid_df: pd.DataFrame, optimal: BlendResult):
         ),
         text=[
             f"Rank {i+1}<br>Fe: {row['Fe%']:.2f}%<br>"
-            f"Slag: {row['Slag%']:.2f}%<br>Cost: ₹{row['Cost/MT (₹)']:,.0f}"
+            f"Slag: {row['Slag%']:.2f}%<br>Cost: ₹{row['Cost/THM (₹)']:,.0f}/THM"
             for i, row in grid_df.iterrows()
         ],
         hovertemplate="%{text}<extra></extra>",
@@ -78,7 +76,7 @@ def render_pareto_scatter(grid_df: pd.DataFrame, optimal: BlendResult):
 
     # Optimal blend star
     fig.add_trace(go.Scatter(
-        x=[optimal.cost_per_mt],
+        x=[optimal.cost_per_thm],
         y=[optimal.effective_fe_pct],
         mode="markers+text",
         marker=dict(
@@ -94,14 +92,14 @@ def render_pareto_scatter(grid_df: pd.DataFrame, optimal: BlendResult):
             f"<b>OPTIMAL BLEND</b><br>"
             f"Fe: {optimal.effective_fe_pct:.2f}%<br>"
             f"Slag: {optimal.slag_pct:.2f}%<br>"
-            f"Cost: ₹{optimal.cost_per_mt:,.0f}<extra></extra>"
+            f"Cost: ₹{optimal.cost_per_thm:,.0f}/THM<extra></extra>"
         ),
         name="Optimal Blend",
     ))
 
     layout = _base_layout("PARETO FRONT — Cost vs Fe% (colour = Slag%)")
     layout.update(
-        xaxis_title="Cost per MT (₹)",
+        xaxis_title="Cost per THM (₹)",
         yaxis_title="Fe% of Blend",
         legend=dict(bgcolor=BG_COLOR, bordercolor=GRID_COLOR),
         height=450,
@@ -161,13 +159,14 @@ def render_fe_contribution_waterfall(optimal: BlendResult, chemistry_df):
     Contribution_i = (qty_i / total_qty) × Fe_i
     """
     from engine.blend_calculator import FE_FROM_FEO_FACTOR
+    from utils.config import cfg as _cfg
     ores     = list(optimal.quantities.keys())
     contribs = []
     for ore in ores:
         w     = optimal.quantities[ore] / optimal.total_qty
         fe_t  = float(chemistry_df.loc[ore, "%Fe(T)"])
         feo   = float(chemistry_df.loc[ore, "%FeO"]) if "%FeO" in chemistry_df.columns else 0.0
-        fe_i  = fe_t + feo * FE_FROM_FEO_FACTOR   # effective Fe per ore
+        fe_i  = fe_t + (feo - _cfg.feo_in_slag) * FE_FROM_FEO_FACTOR  # matches blend_calculator
         contribs.append(w * fe_i)
 
     fig = go.Figure(go.Bar(

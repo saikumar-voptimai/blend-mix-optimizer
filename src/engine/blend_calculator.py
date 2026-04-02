@@ -29,7 +29,8 @@ class BlendResult:
     effective_fe_pct: float   # Fe(T)% + ((FeO% - feo_in_slag) × 0.7773)
     slag_pct:         float   # SiO2 - si_in_slag×(60/28) + Al2O3 + CaO + MgO + MnO
     slag_mt:          float   # slag in absolute tonnes
-    cost_per_mt:      float   # ₹/MT
+    cost_per_mt:      float   # ₹ per MT of ore blend (kept for internal use)
+    cost_per_thm:     float   # ₹ per tonne of hot metal (Fe) produced from ore
     total_cost:       float   # ₹ total
     fe_constraint_relaxed: bool = False  # True if Fe production constraint was relaxed
 
@@ -71,8 +72,10 @@ def calculate_blend(
     slag_mt  = slag_pct / 100.0 * total_qty
 
 
-    total_cost  = sum(quantities[ore] * prices.get(ore, 0) for ore in quantities)
-    cost_per_mt = total_cost / total_qty if total_qty > 0 else 0
+    total_cost    = sum(quantities[ore] * prices.get(ore, 0) for ore in quantities)
+    cost_per_mt   = total_cost / total_qty if total_qty > 0 else 0
+    fe_prod_mt    = effective_fe / 100.0 * total_qty
+    cost_per_thm  = total_cost / fe_prod_mt if fe_prod_mt > 0 else 0
 
     return BlendResult(
         quantities       = quantities,
@@ -90,6 +93,7 @@ def calculate_blend(
         slag_pct         = round(slag_pct, 3),
         slag_mt          = round(slag_mt, 2),
         cost_per_mt      = round(cost_per_mt, 2),
+        cost_per_thm     = round(cost_per_thm, 2),
         total_cost       = round(total_cost, 2),
     )
 
@@ -107,7 +111,7 @@ def blend_results_to_dict(result: BlendResult) -> dict:
         "TiO2%":              result.tio2_pct,
         "Slag%":              result.slag_pct,
         "Slag (MT)":          result.slag_mt,
-        "Cost/MT (₹)":        result.cost_per_mt,
+        "Cost/THM (₹)":       result.cost_per_thm,
         "Total Cost (₹)":     result.total_cost,
         "Total Qty (MT)":     result.total_qty,
     }

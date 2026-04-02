@@ -158,13 +158,14 @@ def run_grid_search(
 
         row = blend_results_to_dict(blend)
         row["Fe Production (MT)"] = round(fe_production_mt, 1)
+        row["Total Slag (MT)"] = round(float(blend.slag_mt) + fuel_slag_mt, 1)
         results.append(row)
 
     if not results:
         return pd.DataFrame()
 
     df = pd.DataFrame(results)
-    df = df.sort_values("Cost/MT (₹)", ascending=True).reset_index(drop=True)
+    df = df.sort_values("Cost/THM (₹)", ascending=True).reset_index(drop=True)
     df.index = df.index + 1
     df.index.name = "Rank"
     return df

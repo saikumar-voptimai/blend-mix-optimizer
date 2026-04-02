@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import linprog
 
-from engine.blend_calculator import calculate_blend, BlendResult, FE_FROM_FEO_FACTOR
+from engine.blend_calculator import calculate_blend, BlendResult, FE_FROM_FEO_FACTOR, SIO2_FROM_SI_FACTOR
 from engine.fuel_calculator import FuelInput, calculate_fuel_slag
 from utils.config import cfg
 
@@ -26,14 +26,20 @@ def _find_sinter_index(selected_ores):
 
 
 def _effective_fe(chemistry_df, ore):
+    """Matches blend_calculator.py: Fe(T) + (FeO - feo_in_slag) × 0.7773."""
     fe_t = float(chemistry_df.loc[ore, "%Fe(T)"])
-    feo = float(chemistry_df.loc[ore, "%FeO"]) if "%FeO" in chemistry_df.columns else 0
-    return fe_t + feo * FE_FROM_FEO_FACTOR
+    feo = float(chemistry_df.loc[ore, "%FeO"]) if "%FeO" in chemistry_df.columns else 0.0
+    return fe_t + (feo - cfg.feo_in_slag) * FE_FROM_FEO_FACTOR
 
 
 def _slag_pct(chemistry_df, ore):
-    cols = ["%SiO2", "%Al2O3", "%CaO", "%MgO", "%MnO"]
-    return sum(float(chemistry_df.loc[ore, c]) for c in cols if c in chemistry_df.columns)
+    """Matches blend_calculator.py: SiO2 - si_in_slag×(60/28) + Al2O3 + CaO + MgO + MnO."""
+    sio2  = float(chemistry_df.loc[ore, "%SiO2"])  if "%SiO2"  in chemistry_df.columns else 0.0
+    al2o3 = float(chemistry_df.loc[ore, "%Al2O3"]) if "%Al2O3" in chemistry_df.columns else 0.0
+    cao   = float(chemistry_df.loc[ore, "%CaO"])   if "%CaO"   in chemistry_df.columns else 0.0
+    mgo   = float(chemistry_df.loc[ore, "%MgO"])   if "%MgO"   in chemistry_df.columns else 0.0
+    mno   = float(chemistry_df.loc[ore, "%MnO"])   if "%MnO"   in chemistry_df.columns else 0.0
+    return (sio2 - cfg.si_in_slag * SIO2_FROM_SI_FACTOR) + al2o3 + cao + mgo + mno
 
 
 def run_optimizer(

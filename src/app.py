@@ -155,6 +155,11 @@ with st.expander("⚙️  Blend Configuration", expanded=True):
             label_visibility="collapsed",
         )
 
+    save_prices_col, _ = st.columns([1, 4])
+    if save_prices_col.button("💾 Save prices to config", key="save_prices_btn"):
+        persist_overrides(ore_prices=prices)
+        st.success("Prices saved to config.yaml.")
+
     st.divider()
 
     # ── Step 3 — Fuel Inputs ─────────────────────────

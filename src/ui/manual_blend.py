@@ -91,7 +91,7 @@ def render_manual_blend_tab(
     opt_total_slag = total_slag_mt(optimal_result)
     man_total_slag = total_slag_mt(manual_result)
 
-    cost_delta = manual_result.cost_per_mt - optimal_result.cost_per_mt
+    cost_delta = manual_result.cost_per_thm - optimal_result.cost_per_thm
     fe_delta = man_gross_fe - opt_gross_fe
     slag_delta = man_total_slag - opt_total_slag
     total_delta = manual_result.total_cost - optimal_result.total_cost
@@ -100,16 +100,16 @@ def render_manual_blend_tab(
 
     if cost_delta > 0:
         st.error(
-            f"🔴 Manual blend costs **₹{cost_delta:,.0f}/MT more** than optimizer. "
+            f"🔴 Manual blend costs **₹{cost_delta:,.0f}/THM more** than optimizer. "
             f"Extra spend: **₹{total_delta/1e5:.2f} Lakhs** for this batch."
         )
     elif cost_delta < 0:
         st.success(
-            f"🟢 Manual blend costs **₹{abs(cost_delta):,.0f}/MT less** than optimizer. "
+            f"🟢 Manual blend costs **₹{abs(cost_delta):,.0f}/THM less** than optimizer. "
             f"Saving: **₹{abs(total_delta)/1e5:.2f} Lakhs** for this batch."
         )
     else:
-        st.info("Manual and optimal blends have the same cost/MT.")
+        st.info("Manual and optimal blends have the same cost/THM.")
 
     st.divider()
     st.markdown("### 📊 Side-by-Side Comparison")
@@ -123,7 +123,7 @@ def render_manual_blend_tab(
         return f'<span style="color:{color}">{symbol} {abs(val):.3g}</span>'
 
     rows = [
-        ("Cost/MT (₹)", f"₹{optimal_result.cost_per_mt:,.0f}", f"₹{manual_result.cost_per_mt:,.0f}", arrow(cost_delta, True)),
+        ("Cost/THM (₹)", f"₹{optimal_result.cost_per_thm:,.0f}", f"₹{manual_result.cost_per_thm:,.0f}", arrow(cost_delta, True)),
         ("Total Cost", f"₹{optimal_result.total_cost/1e5:.2f}L", f"₹{manual_result.total_cost/1e5:.2f}L", arrow(total_delta/1e5, True)),
         ("Total Qty (MT)", f"{optimal_result.total_qty:.0f}", f"{manual_result.total_qty:.0f}", arrow(manual_result.total_qty - optimal_result.total_qty, False)),
         ("Gross Fe%", f"{opt_gross_fe:.3f}%", f"{man_gross_fe:.3f}%", arrow(fe_delta, False)),
